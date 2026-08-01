@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+src-tauri/target
+src-tauri/gen
+
+# 本地测试/会话产物
+.playwright-mcp
+.claude/settings.local.json
