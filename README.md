@@ -5,7 +5,7 @@
 
 DevTools is a desktop utility collection for developers — formatting, encoding, conversion, debugging, and generation tools that process all data **locally** on your machine. Built with Vue 3 + Vite + TypeScript, packaged as a cross-platform desktop app with Tauri 2, and also runnable as a plain web app.
 
-![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.1.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green)
+![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.1.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/Download%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
 
 > 🇨🇳 中文说明见 [README.zh-CN.md](./README.zh-CN.md)
 
@@ -102,7 +102,9 @@ npm run dev   # then run Playwright against http://localhost:1420 following the 
 
 ## Release & Build Artifacts
 
-Pushing a `v*` tag triggers [`.github/workflows/release.yml`](./.github/workflows/release.yml), which builds and publishes a draft release with installers for:
+**⬇️ [Download installers](https://github.com/Angryshark128/devtools/releases/latest)** — pick the build for your platform.
+
+Pushing a `v*` tag triggers [`.github/workflows/release.yml`](./.github/workflows/release.yml), which builds and publishes a release with installers for:
 
 | Platform | Architecture |
 |---|---|
