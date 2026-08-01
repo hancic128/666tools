@@ -1,125 +1,125 @@
-# DevTools — Developer Toolbox
+# DevTools · 开发者工具箱
 
-> **17 everyday developer utilities in one local-first desktop app.**
-> No account. No telemetry. No network requests. Everything runs in your browser.
+> **17 个常用开发者工具，一个本地优先的桌面应用。**
+> 无需账号、无遥测、无网络请求，所有数据处理都在本机完成。
 
-DevTools is a desktop utility collection for developers — formatting, encoding, conversion, debugging, and generation tools that process all data **locally** on your machine. Built with Vue 3 + Vite + TypeScript, packaged as a cross-platform desktop app with Tauri 2, and also runnable as a plain web app.
+开发者工具箱是一个面向开发者的桌面工具集合——格式化、编码、转换、调试、生成五大类，全部数据**本地处理**。技术栈 Vue 3 + Vite + TypeScript，Tauri 2 打包为跨平台桌面应用，也可作为纯 Web 应用运行。
 
-![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.1.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/Download%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
+![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.1.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/下载%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
 
-> 🇨🇳 中文说明见 [README.zh-CN.md](./README.zh-CN.md)
+> **中文** · [English](./README.en.md)
 
-## Screenshots
+## 应用截图
 
-| Formatter · Light | Formatter · Dark |
+| 代码格式化 · 亮色 | 代码格式化 · 暗色 |
 |---|---|
-| ![JSON formatter light](docs/screenshots/json-light.png) | ![JSON formatter dark](docs/screenshots/json-dark.png) |
-| **Mermaid diagrams** | **Color converter** |
-| ![Mermaid](docs/screenshots/mermaid.png) | ![Color](docs/screenshots/color.png) |
+| ![JSON 格式化亮色](docs/screenshots/json-light.png) | ![JSON 格式化暗色](docs/screenshots/json-dark.png) |
+| **Mermaid 图表** | **颜色转换** |
+| ![Mermaid 图表](docs/screenshots/mermaid.png) | ![颜色转换](docs/screenshots/color.png) |
 
-## Features
+## 功能特性
 
-- **17 tools** — formatter, converter, time, diff, Mermaid, Base64, URL, regex, JWT, Hash, UUID, color, curl, text stats, case, QR code, radix
-- **Local-first & private** — zero network calls from the tool logic; ideal for internal/sensitive data
-- **Dark/light/system themes** with persistence
-- **Copy feedback, swap, Cmd/Ctrl+Enter** shortcuts across tools
-- **Realtime computation** for Hash / Regex / Case / Radix / Curl / Color / JWT / Diff / Stats / UUID / QR / Mermaid
-- **Input caching** for the formatter and Mermaid editors
-- **Zero-dependency algorithms** — hand-written MD5, YAML & Python-dict parsers, JSON tree folding, LCS diff (see [`src/utils/`](./src/utils))
+- **17 个工具**：格式化、转换、时间、对比、Mermaid、Base64、URL、正则、JWT、Hash、UUID、颜色、Curl、统计、命名、二维码、进制
+- **本地优先 & 隐私**：工具逻辑零网络请求，适合处理内部/敏感数据
+- **亮/暗/跟随系统** 三态主题，自动持久化
+- **复制反馈、交换、Cmd/Ctrl+Enter** 快捷键
+- **实时计算**：Hash / 正则 / 命名 / 进制 / Curl / 颜色 / JWT / 对比 / 统计 / UUID / 二维码 / Mermaid
+- **输入缓存**：格式化器、Mermaid 编辑器自动保存
+- **零依赖算法**：手写 MD5、YAML 与 Python Dict 解析器、JSON 树折叠、LCS diff（见 [`src/utils/`](./src/utils)）
 
-## Tools
+## 工具清单
 
-| Category | Tool | Route |
+| 类别 | 工具 | 路由 |
 |---|---|---|
-| Format | JSON / SQL / Python / XML / HTML formatter with collapsible JSON tree | `#/json` |
-| Convert | JSON ⇄ JSON String ⇄ YAML ⇄ Python Dict | `#/converter` |
-| Time | Timestamp ⇄ date · duration conversion | `#/time` |
-| Diff | LCS text / JSON / properties diff | `#/diff` |
-| Diagram | Mermaid → SVG with zoom/pan/export | `#/mermaid` |
-| Encode | Base64 · URL encode/decode | `#/base64` `#/url` |
-| Debug | Regex tester · JWT parser (exp/iat) | `#/regex` `#/jwt` |
-| Generate | Hash (MD5/SHA) · UUID v4 · QR code · radix | `#/hash` `#/uuid` `#/qr` `#/radix` |
-| Dev | Color converter · curl → code (fetch/axios/python/go) · text stats · case converter | `#/color` `#/curl` `#/text-stats` `#/case` |
+| 格式化 | JSON / SQL / Python / XML / HTML（含 JSON 树折叠） | `#/json` |
+| 转换 | JSON ⇄ JSON String ⇄ YAML ⇄ Python Dict | `#/converter` |
+| 时间 | 时间戳 ⇄ 日期 · 时长换算 | `#/time` |
+| 对比 | LCS 文本 / JSON / properties 差异 | `#/diff` |
+| 图表 | Mermaid → SVG（缩放/平移/导出） | `#/mermaid` |
+| 编码 | Base64 · URL 编解码 | `#/base64` `#/url` |
+| 调试 | 正则测试 · JWT 解析（exp/iat） | `#/regex` `#/jwt` |
+| 生成 | Hash（MD5/SHA）· UUID v4 · 二维码 · 进制 | `#/hash` `#/uuid` `#/qr` `#/radix` |
+| 开发 | 颜色转换 · curl→代码 · 文本统计 · 大小写 | `#/color` `#/curl` `#/text-stats` `#/case` |
 
-## Tech Stack
+## 技术栈
 
-| Layer | Tech |
+| 层 | 技术 |
 |---|---|
-| Frontend | Vue 3 (Composition API), Vue Router 4, TypeScript (strict) |
-| Build | Vite 8, `vue-tsc` type-checking |
-| Desktop | Tauri 2 (shell plugin only) |
-| Runtime libs | `mermaid`, `qrcode` |
+| 前端 | Vue 3（Composition API）、Vue Router 4、TypeScript（strict） |
+| 构建 | Vite 8、`vue-tsc` 类型检查 |
+| 桌面 | Tauri 2（仅 shell 插件） |
+| 运行时依赖 | `mermaid`、`qrcode` |
 
-## Getting Started
+## 快速开始
 
-### Prerequisites
+### 环境要求
 
 - [Node.js](https://nodejs.org) ≥ 20
-- (Desktop build only) [Rust](https://rustup.rs) + platform Tauri prerequisites
+- （桌面打包才需要）[Rust](https://rustup.rs) 及平台 Tauri 依赖
 
-### Run in browser (dev)
+### 浏览器开发模式
 
 ```bash
 npm install
 npm run dev        # http://localhost:1420
 ```
 
-### Run as desktop app
+### 桌面开发模式
 
 ```bash
 npm run tauri dev
 ```
 
-### Build
+### 构建
 
 ```bash
-npm run build       # type-check + web build → dist/
-npm run tauri build # desktop installers
+npm run build       # 类型检查 + Web 构建 → dist/
+npm run tauri build # 打包桌面安装包
 ```
 
-## Project Structure
+## 项目结构
 
 ```
 src/
-├── main.ts / App.vue / router.ts   # entry, root layout (Sidebar + router-view), lazy routes
-├── styles/main.css                 # design system: CSS variables, reset, layout classes, syntax tokens
+├── main.ts / App.vue / router.ts   # 入口、根布局（Sidebar + router-view）、懒加载路由
+├── styles/main.css                 # 设计系统：CSS 变量、reset、布局类、语法高亮 token
 ├── components/                     # Button / Select / CodeEditor / JsonView / ViewHeader / Sidebar …
-├── utils/                          # pure functions — formatter, converters, md5, jsonTree, curl, case, color, radix …
-└── views/                          # 17 tool pages
+├── utils/                          # 纯函数：formatter / converters / md5 / jsonTree / curl / case / color / radix …
+└── views/                          # 17 个工具页
 docs/
-└── test-cases.md                   # full Playwright test manual for all tools
+└── test-cases.md                   # 全量 Playwright 测试用例手册
 ```
 
-## Testing
+## 测试
 
-The complete manual covers every tool with concrete steps and Playwright assertions: **[docs/test-cases.md](./docs/test-cases.md)**.
+完整测试手册覆盖每个工具，含具体步骤与 Playwright 断言：**[docs/test-cases.md](./docs/test-cases.md)**。
 
 ```bash
-npm run dev   # then run Playwright against http://localhost:1420 following the manual
+npm run dev   # 然后按手册用 Playwright 验证 http://localhost:1420
 ```
 
-> Design & architecture reference: [Design.md](./Design.md)
+> 设计与架构说明：**[Design.md](./Design.md)**
 
-## Release & Build Artifacts
+## 发布与制品
 
-**⬇️ [Download installers](https://github.com/Angryshark128/devtools/releases/latest)** — pick the build for your platform.
+**⬇️ [下载安装包](https://github.com/Angryshark128/devtools/releases/latest)** — 按你的平台选择对应构建。
 
-Pushing a `v*` tag triggers [`.github/workflows/release.yml`](./.github/workflows/release.yml), which builds and publishes a release with installers for:
+推送 `v*` tag 会触发 [`.github/workflows/release.yml`](./.github/workflows/release.yml)，构建并发布 Release，包含以下平台的安装包：
 
-| Platform | Architecture |
+| 平台 | 架构 |
 |---|---|
-| macOS | x64 (Intel) · arm64 (Apple Silicon) |
-| Windows | x64 · x86 (32-bit) |
+| macOS | x64（Intel）· arm64（Apple Silicon） |
+| Windows | x64 · x86（32 位） |
 
-`workflow_dispatch` also runs the build matrix manually without publishing. Installers are unsigned; macOS shows a Gatekeeper warning on first open.
+`workflow_dispatch` 可手动跑构建矩阵（不发布）。安装包未签名，macOS 首次打开会有 Gatekeeper 警告。
 
-## Contributing
+## 参与贡献
 
-1. Fork & branch from `main`.
-2. To add a tool: create `src/views/YourTool.vue`, register its route in `src/router.ts`, and add one entry to the `TOOLS` array in `src/components/Sidebar.vue` (icon + color).
-3. Keep new logic in `src/utils/` as pure functions when possible — they are easy to unit-test.
-4. Run `npm run build` (must pass) and verify the new/changed tool against `docs/test-cases.md`.
-5. Open a PR with a short description.
+1. Fork 并从 `main` 分支开发。
+2. 新增工具：创建 `src/views/YourTool.vue`，在 `src/router.ts` 注册路由，并在 `src/components/Sidebar.vue` 的 `TOOLS` 数组加一项（图标 + 颜色）。
+3. 新逻辑尽量放入 `src/utils/` 纯函数，便于单测。
+4. 运行 `npm run build`（必须通过），并按 `docs/test-cases.md` 验证新增/改动工具。
+5. 提交 PR 并附简短说明。
 
 ## License
 
