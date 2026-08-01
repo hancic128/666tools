@@ -9,6 +9,14 @@
 
 > English docs see [README.md](./README.md)
 
+## 应用截图
+
+| 代码格式化 · 亮色 | 代码格式化 · 暗色 |
+|---|---|
+| ![JSON 格式化亮色](docs/screenshots/json-light.png) | ![JSON 格式化暗色](docs/screenshots/json-dark.png) |
+| **Mermaid 图表** | **颜色转换** |
+| ![Mermaid 图表](docs/screenshots/mermaid.png) | ![颜色转换](docs/screenshots/color.png) |
+
 ## 功能特性
 
 - **17 个工具**：格式化、转换、时间、对比、Mermaid、Base64、URL、正则、JWT、Hash、UUID、颜色、Curl、统计、命名、二维码、进制

@@ -9,6 +9,14 @@ DevTools is a desktop utility collection for developers — formatting, encoding
 
 > 🇨🇳 中文说明见 [README.zh-CN.md](./README.zh-CN.md)
 
+## Screenshots
+
+| Formatter · Light | Formatter · Dark |
+|---|---|
+| ![JSON formatter light](docs/screenshots/json-light.png) | ![JSON formatter dark](docs/screenshots/json-dark.png) |
+| **Mermaid diagrams** | **Color converter** |
+| ![Mermaid](docs/screenshots/mermaid.png) | ![Color](docs/screenshots/color.png) |
+
 ## Features
 
 - **17 tools** — formatter, converter, time, diff, Mermaid, Base64, URL, regex, JWT, Hash, UUID, color, curl, text stats, case, QR code, radix
