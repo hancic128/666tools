@@ -8,14 +8,19 @@ const props = withDefaults(
     readonly?: boolean
     language?: string
     lineNumbers?: boolean
+    /** 自动换行：长行软换行（不产生 \n）。换行时行号无法对齐，自动隐藏。 */
+    wrap?: boolean
   }>(),
-  { placeholder: '', readonly: false, language: 'text', lineNumbers: true },
+  { placeholder: '', readonly: false, language: 'text', lineNumbers: true, wrap: true },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const textareaEl = ref<HTMLTextAreaElement | null>(null)
 const linesEl = ref<HTMLDivElement | null>(null)
+
+/** 换行时行号与软换行行无法对齐，隐藏行号 */
+const showLines = computed(() => props.lineNumbers && !props.wrap)
 
 const lineCount = computed(() => props.modelValue.split('\n').length)
 const lineNumbersText = computed(() =>
@@ -43,8 +48,8 @@ defineExpose({ focus })
 </script>
 
 <template>
-  <div class="code-editor" :class="{ 'with-lines': lineNumbers }">
-    <div v-if="lineNumbers" ref="linesEl" class="line-numbers" aria-hidden="true">
+  <div class="code-editor" :class="{ 'with-lines': showLines, 'with-wrap': wrap }">
+    <div v-if="showLines" ref="linesEl" class="line-numbers" aria-hidden="true">
       <pre class="line-numbers-text" v-text="lineNumbersText"></pre>
     </div>
     <textarea
@@ -100,6 +105,14 @@ defineExpose({ focus })
   tab-size: 2;
   white-space: pre;
   overflow: auto;
+}
+
+/* 自动换行模式：长行软换行 */
+.with-wrap .editor-input {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  padding-left: var(--space-md);
 }
 
 .editor-input::placeholder {

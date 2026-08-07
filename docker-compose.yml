@@ -1,0 +1,8 @@
+services:
+  devtools:
+    build: .
+    image: devtools:latest
+    container_name: devtools
+    ports:
+      - "1420:80"
+    restart: unless-stopped

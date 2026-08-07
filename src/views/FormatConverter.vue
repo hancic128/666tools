@@ -6,6 +6,8 @@ import Button from '@/components/Button.vue'
 import Select from '@/components/Select.vue'
 import { useCopy } from '@/utils/useCopy'
 import { useCmdEnter } from '@/utils/useHotkey'
+import { highlightJson } from '@/utils/json'
+import { highlightPython, highlightYaml } from '@/utils/formatter'
 import { CONV_FORMATS, parseSource, serializeValue, type ConvFormat } from '@/utils/converters'
 
 const from = ref<ConvFormat>('json')
@@ -20,6 +22,25 @@ const output = computed(() => {
     return serializeValue(value, to.value)
   } catch (e) {
     return `⚠ 转换失败：${(e as Error).message}`
+  }
+})
+
+/** 输出区语法高亮 HTML */
+const outputHtml = computed(() => {
+  if (!input.value.trim()) return ''
+  if (output.value.startsWith('⚠')) return output.value
+  try {
+    switch (to.value) {
+      case 'yaml':
+        return highlightYaml(output.value)
+      case 'python':
+        return highlightPython(output.value)
+      default:
+        // json / json-string 均为 JSON 文本
+        return highlightJson(output.value)
+    }
+  } catch {
+    return output.value
   }
 })
 
@@ -57,9 +78,34 @@ useCmdEnter(() => copy(output.value))
       <div class="panel">
         <div class="panel-header"><span class="panel-title">输出</span></div>
         <div class="panel-body">
-          <CodeEditor :model-value="output" readonly placeholder="转换结果…" />
+          <pre v-if="output" class="converter-output" v-html="outputHtml"></pre>
+          <p v-else class="converter-empty">等待输入…</p>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.converter-output {
+  margin: 0;
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  color: var(--text-primary);
+  user-select: text;
+}
+
+.converter-empty {
+  margin: 0;
+  padding: var(--space-md);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+</style>

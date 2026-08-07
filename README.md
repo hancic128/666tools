@@ -5,7 +5,7 @@
 
 开发者工具箱是一个面向开发者的桌面工具集合——格式化、编码、转换、调试、生成五大类，全部数据**本地处理**。技术栈 Vue 3 + Vite + TypeScript，Tauri 2 打包为跨平台桌面应用，也可作为纯 Web 应用运行。
 
-![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.1.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/下载%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
+![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.2.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/下载%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
 
 > **中文** · [English](./README.en.md)
 
@@ -23,6 +23,8 @@
 - **本地优先 & 隐私**：工具逻辑零网络请求，适合处理内部/敏感数据
 - **亮/暗/跟随系统** 三态主题，自动持久化
 - **复制反馈、交换、Cmd/Ctrl+Enter** 快捷键
+- **自动换行**：所有输入/输出编辑器默认软换行，长行不产生横向滚动（换行时自动隐藏行号）
+- **输出语法高亮**：格式化与格式转换的输出区均带 token 级高亮（JSON/SQL/Python/XML/HTML/YAML）
 - **实时计算**：Hash / 正则 / 命名 / 进制 / Curl / 颜色 / JWT / 对比 / 统计 / UUID / 二维码 / Mermaid
 - **输入缓存**：格式化器、Mermaid 编辑器自动保存
 - **零依赖算法**：手写 MD5、YAML 与 Python Dict 解析器、JSON 树折叠、LCS diff（见 [`src/utils/`](./src/utils)）
@@ -77,6 +79,23 @@ npm run build       # 类型检查 + Web 构建 → dist/
 npm run tauri build # 打包桌面安装包
 ```
 
+## Docker 部署
+
+提供 `Dockerfile`（Node 构建 → Nginx 静态服务）与 `docker-compose.yml`，可直接容器化部署 Web 版。
+
+```bash
+# 方式一：docker compose（推荐）
+docker compose up -d            # http://localhost:1420
+
+# 方式二：docker build + run
+docker build -t devtools .
+docker run -d --name devtools -p 1420:80 devtools
+```
+
+- 端口默认映射 `1420:80`，如需修改在 `docker-compose.yml` 的 `ports` 调整。
+- 路由为 hash 模式（`#/json`），无需 nginx SPA fallback；静态资源已开启长缓存。
+- `.dockerignore` 已排除 `node_modules` / `dist` / `src-tauri/target` 等，构建体积最小化。
+
 ## 项目结构
 
 ```
@@ -87,8 +106,14 @@ src/
 ├── utils/                          # 纯函数：formatter / converters / md5 / jsonTree / curl / case / color / radix …
 └── views/                          # 17 个工具页
 docs/
+├── usage.md                       # 使用文档（运行方式 / 操作 / 快捷键 / 工具说明）
+├── deploy.md                      # Web 版部署到 EdgeOne Pages 指南
 └── test-cases.md                   # 全量 Playwright 测试用例手册
 ```
+
+## 使用文档
+
+详细的三种运行方式（桌面 / 浏览器 / Docker）、界面操作、快捷键与每个工具的使用说明：**[docs/usage.md](./docs/usage.md)**。
 
 ## 测试
 
@@ -112,6 +137,8 @@ npm run dev   # 然后按手册用 Playwright 验证 http://localhost:1420
 | Windows | x64 · x86（32 位） |
 
 `workflow_dispatch` 可手动跑构建矩阵（不发布）。安装包未签名，macOS 首次打开会有 Gatekeeper 警告。
+
+Web 版在线部署：打 `v*` tag 时 [`.github/workflows/web-dist.yml`](./.github/workflows/web-dist.yml) 会同步构建静态制品（Actions 页下载 `web-dist`），上传到 EdgeOne Pages 即可访问，完整步骤见 **[docs/deploy.md](./docs/deploy.md)**。
 
 ## 参与贡献
 

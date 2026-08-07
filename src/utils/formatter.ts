@@ -1,5 +1,5 @@
 /**
- * 代码格式化 + 语法高亮（SQL / Python / XML / HTML）。
+ * 代码格式化 + 语法高亮（SQL / Python / XML / HTML / YAML）。
  * 高亮输出已转义 HTML，类名 f-tok / f-keyword / f-string / f-number /
  * f-bool / f-null / f-key / f-comment / f-builtin / f-decorator / f-tag / f-attr。
  */
@@ -18,6 +18,13 @@ const SQL_KEYWORDS = new Set([
   'CREATE', 'TABLE', 'ALTER', 'DROP', 'INDEX', 'PRIMARY', 'KEY', 'FOREIGN',
   'REFERENCES', 'NULL', 'IS', 'IN', 'EXISTS', 'BETWEEN', 'LIKE', 'COUNT', 'SUM',
   'AVG', 'MIN', 'MAX', 'BEGIN', 'COMMIT', 'ROLLBACK', 'TRUNCATE', 'DEFAULT', 'UNIQUE',
+])
+
+/** 聚合/内置函数：调用括号内联（COUNT(*)）、参数用逗号+空格分隔 */
+const SQL_FUNC = new Set([
+  'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'COALESCE', 'NULLIF', 'CAST', 'CONCAT',
+  'IFNULL', 'NOW', 'UPPER', 'LOWER', 'TRIM', 'LENGTH', 'SUBSTR', 'REPLACE',
+  'ABS', 'ROUND', 'FLOOR', 'CEIL', 'DATE',
 ])
 
 const SQL_BREAK = new Set([
@@ -81,22 +88,49 @@ function tokenizeSql(sql: string): string[] {
   return tokens
 }
 
+/** 单行过长阈值：超过则逗号后换行（普通括号内仍拆行，函数参数内联） */
+const SQL_LINE_MAX = 60
+
 export function formatSql(sql: string, indentSize = 2): string {
   const tokens = tokenizeSql(sql)
   const out: string[] = []
   let indent = 0
   let lineStart = true
+  let lineLen = 0
+  let funcDepth = 0 // 当前函数调用括号深度（COUNT(SUM(x)) 内联参数）
+  let prev: { kind: string; text: string } | null = null
 
   const nl = () => {
     out.push('\n' + ' '.repeat(indent * indentSize))
     lineStart = true
+    lineLen = 0
+  }
+  const pushRaw = (s: string) => {
+    out.push(s)
+    lineStart = false
+    lineLen += s.length
   }
 
-  for (const t of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]
     if (t === ' ' || t === '\n') continue
     const isWord = /^[A-Za-z_][A-Za-z0-9_]*$/.test(t)
     const upper = isWord ? t.toUpperCase() : ''
     const isKeyword = isWord && SQL_KEYWORDS.has(upper)
+
+    // 前瞻：下一个非空白 token 是否为 (
+    let k = i + 1
+    while (k < tokens.length && (tokens[k] === ' ' || tokens[k] === '\n')) k++
+    const parenFollows = tokens[k] === '('
+    const isFunc = isWord && parenFollows && SQL_FUNC.has(upper)
+
+    // 函数调用（COUNT(SUM(x))）：紧贴括号，不触发关键字断行
+    if (isFunc) {
+      if (!lineStart) pushRaw(' ')
+      pushRaw(upper)
+      prev = { kind: 'funcname', text: upper }
+      continue
+    }
 
     if (isKeyword && SQL_BREAK.has(upper)) {
       if (upper === 'AND' || upper === 'OR') {
@@ -104,32 +138,54 @@ export function formatSql(sql: string, indentSize = 2): string {
       } else {
         nl()
       }
-      out.push(upper)
-      lineStart = false
+      pushRaw(upper)
+      prev = { kind: 'kw', text: upper }
       continue
     }
+
     if (t === '(') {
-      if (!lineStart) out.push(' ')
-      out.push(t)
-      indent++
-      nl()
+      if (!lineStart && !(prev && prev.kind === 'funcname')) pushRaw(' ')
+      pushRaw('(')
+      // prev 为 funcname 说明这是函数调用括号（COUNT(*)、SUBSTR(a,b)）
+      if (prev && prev.kind === 'funcname') funcDepth++
+      prev = { kind: 'lp', text: '(' }
       continue
     }
     if (t === ')') {
-      indent = Math.max(0, indent - 1)
-      nl()
-      out.push(t)
-      lineStart = false
+      pushRaw(')')
+      if (funcDepth > 0) funcDepth--
+      prev = { kind: 'rp', text: ')' }
       continue
     }
     if (t === ',') {
-      out.push(t)
-      nl()
+      pushRaw(',')
+      // 函数参数内联；普通括号内行超长才换行
+      if (funcDepth === 0 && lineLen > SQL_LINE_MAX) nl()
+      prev = { kind: 'comma', text: ',' }
       continue
     }
-    if (!lineStart) out.push(' ')
-    out.push(isKeyword ? upper : t)
-    lineStart = false
+    if (t === ';') {
+      pushRaw(';')
+      prev = { kind: 'semi', text: ';' }
+      continue
+    }
+    if (t === '.') {
+      pushRaw('.')
+      prev = { kind: 'dot', text: '.' }
+      continue
+    }
+
+    if (!lineStart) {
+      const noSpace =
+        (prev && prev.kind === 'lp') || // ( 后紧贴
+        (prev && prev.kind === 'dot') || // . 两侧
+        t === '.' ||
+        (prev && prev.kind === 'funcname') // 函数名后紧贴 (
+      if (!noSpace) pushRaw(' ')
+    }
+    const disp = isKeyword ? upper : t
+    pushRaw(disp)
+    prev = { kind: isKeyword ? 'kw' : 'word', text: disp }
   }
   return out.join('').trim()
 }
@@ -339,4 +395,52 @@ export function highlightXml(code: string): string {
       return esc(p)
     })
     .join('')
+}
+
+/* ---------------- YAML ---------------- */
+
+/** 标量值类型（null / 布尔 / 数字 / 纯字符串） */
+function yamlScalarType(v: string): string | null {
+  const t = v.trim()
+  if (!t) return 'f-string'
+  if (t === 'null' || t === '~' || t === 'Null' || t === 'NULL') return 'f-null'
+  if (t === 'true' || t === 'True' || t === 'TRUE' || t === 'false' || t === 'False' || t === 'FALSE') return 'f-bool'
+  if (/^-?\d+$/.test(t) || /^-?\d*\.\d+$/.test(t) || /^[-+]?\d+(\.\d+)?[eE][+-]?\d+$/.test(t)) return 'f-number'
+  if (t[0] === '"' || t[0] === "'") return 'f-string'
+  return null
+}
+
+export function highlightYaml(code: string): string {
+  return code
+    .split('\n')
+    .map((line) => {
+      if (!line.trim()) return ''
+      const indent = line.match(/^\s*/)![0]
+      // 列表项：- key: value 或 - value
+      const list = line.match(/^(\s*-\s+)(.*)$/)
+      if (list) {
+        const rest = list[2]
+        const kv = rest.match(/^([^:]+):\s*(.*)$/)
+        if (kv) {
+          const key = kv[1].trim()
+          const val = kv[2]
+          const st = yamlScalarType(val)
+          const keyHtml = `<span class="f-tok f-key">${esc(key)}</span>`
+          return `${esc(indent)}${esc('-')} ${keyHtml}<span class="f-tok f-punct">:</span>${st ? ` <span class="f-tok ${st}">${esc(val)}</span>` : (val ? ` ${esc(val)}` : '')}`
+        }
+        const st = yamlScalarType(rest)
+        return `${esc(indent)}${esc('-')}${st ? ` <span class="f-tok ${st}">${esc(rest)}</span>` : ` ${esc(rest)}`}`
+      }
+      // 普通行：key: value
+      const kv = line.match(/^(\s*)([^:]+):(?:\s*(.*))?$/)
+      if (kv) {
+        const key = kv[2].trim()
+        const val = kv[3] ?? ''
+        // 空值行（嵌套结构在下一行）：不加尾随空格/空 span
+        const st = val ? yamlScalarType(val) : null
+        return `${esc(kv[1])}<span class="f-tok f-key">${esc(key)}</span><span class="f-tok f-punct">:</span>${st ? ` <span class="f-tok ${st}">${esc(val)}</span>` : (val ? ` ${esc(val)}` : '')}`
+      }
+      return esc(line)
+    })
+    .join('\n')
 }

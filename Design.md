@@ -118,7 +118,7 @@ Sidebar 内维护 `TOOLS` 数组（17 项），每项含 `{ name, path, label, c
 自定义下拉：`modelValue` + `options: { value, label }[]` + `disabled` + `width`。emit `update:modelValue`。点击外部关闭（`document` click 监听），选中项高亮，`Transition` 展开动画。
 
 ### 5.3 CodeEditor.vue
-通用代码编辑器：`modelValue` + `placeholder` + `readonly` + `language` + `lineNumbers`（默认 true）。左侧行号列与右侧 `textarea` 同步滚动。暴露 `focus()`。
+通用代码编辑器：`modelValue` + `placeholder` + `readonly` + `language` + `lineNumbers`（默认 true）+ `wrap`（默认 true）。左侧行号列与右侧 `textarea` 同步滚动。`wrap` 开启时长行软换行（`white-space: pre-wrap` + `word-break: break-word`），且**自动隐藏行号**（软换行行无法与行号对齐）。暴露 `focus()`。
 
 ### 5.4 JsonView.vue
 只读 JSON 语法高亮展示（复用 `highlightJson`），用于 JWT Payload/Header 等只读场景。
@@ -144,13 +144,14 @@ Sidebar 内维护 `TOOLS` 数组（17 项），每项含 `{ name, path, label, c
 - `renderJsonTree(value, collapsed, indentSize): string`：渲染整棵树为高亮 HTML（`.f-tok.*` 类）。折叠路径格式 `$` / `$.key` / `$[index]`（可嵌套）。数组显示索引行。
 - 折叠交互：节点以 `data-path` 标记，点击 `[`/`{` 或 `...N items...` 预览切换折叠。
 
-### 6.3 `formatter.ts` — SQL/Python/XML/HTML 格式化 + 高亮
-- `formatSql(sql, indent)`：token 化 + 关键字断行（`SELECT/FROM/WHERE/…` 换行，`AND/OR` 条件换行、`ORDER BY` 合排）+ 括号缩进。
+### 6.3 `formatter.ts` — SQL/Python/XML/HTML/YAML 格式化 + 高亮
+- `formatSql(sql, indent)`：token 化 + 关键字断行（`SELECT/FROM/WHERE/…` 换行，`AND/OR` 条件换行、`ORDER BY` 合排）+ 括号缩进。函数调用（`COUNT(*)/SUBSTR(a,b)`）内联紧凑；短逗号列表单行、超长才换行；分号无前导空格。
 - `highlightSql(code)`：注释 `--`、引号字符串、数字、关键字（全大写）→ `.f-tok.*`。
 - `formatPython(code)`：清理尾随空格 + 压缩多余空行（**非真实重排缩进**）。
 - `highlightPython(code)`：注释、装饰器 `@`、三引号/引号字符串、数字、关键字、内置函数。
 - `formatXml / formatHtml`：`DOMParser` 解析。XML 用 `text/xml`（保留大小写，有 `parsererror` 抛错）；HTML 用 `text/html`（标签名**小写化**）。空元素输出自闭合 `<tag />`。
 - `highlightXml(code)`：注释 / 标签（tag 名、attr、attr 值分别着色）/ 文本。
+- `highlightYaml(code)`：行级着色——key（`.f-key`）、标量值（null/bool/number/string 分别 `.f-null/.f-bool/.f-number/.f-string`）、`- ` 列表项。
 
 ### 6.4 `converters.ts` — 格式互转
 支持 `'json' | 'json-string' | 'yaml' | 'python'` 四种格式：
@@ -196,6 +197,8 @@ Web Crypto API 不含 MD5，故手写实现（约 95 行）。UTF-8 编码（`Te
 
 ### 7.2 格式转换 FormatConverter（`/converter`，紫色 #8B5CF6）
 JSON ↔ JSON String ↔ YAML ↔ Python Dict 双向互转。⇄ 按钮交换源/目标格式并把输出回填输入。输出为只读 computed，Cmd+Enter 复制。
+- 输出区为高亮 `<pre class="converter-output">`：YAML 用 `highlightYaml`、Python 用 `highlightPython`、JSON/JSON String 用 `highlightJson`（复用 `.tok-*` 配色），自动换行。
+- 输入 `CodeEditor` 默认 `wrap` 开启。
 
 ### 7.3 时间戳转换 TimeConverter（`/time`，蓝色 #3B82F6）
 三个 Tab：**时间戳→日期**（单位 auto/s/ms/μs/ns，auto 按位数判断；输出本地/UTC/ISO）、**日期→时间戳**（datetime-local 输入，本地/UTC 时区，输出 s/ms/μs/ns）、**时长转换**（ms/s/min/h/d/w 互算 + 人类可读如"1 天 2 小时"）。顶部实时时钟每秒刷新。

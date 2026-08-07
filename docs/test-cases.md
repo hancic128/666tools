@@ -15,7 +15,8 @@ Playwright 打开 `http://localhost:1420` 即可。Tauri 壳不参与前端功�
 
 **约定 / Conventions**
 
-- 输入区文本域 = `textarea.editor-input:not([readonly])`（每个页面第一个）；输出区 = `textarea.editor-input[readonly]`。
+- 输入区文本域 = `textarea.editor-input:not([readonly])`（每个页面第一个）；`CodeEditor` 输出区 = `textarea.editor-input[readonly]`。
+- 格式转换输出区为高亮 `<pre class="converter-output">`（非 textarea），断言用 `.converter-output` 文本内容。
 - 按钮统一用 `getByRole('button', { name: '...' })`；若页面有多个同名按钮，用 `.nth(i)`。
 - 自定义下拉 Select：点击 `.select-trigger` → 点击 `.select-option` 文本项。
 - 复制类按钮会短暂变为"已复制!"（1 秒），断言时留意时序。
@@ -67,6 +68,20 @@ expect(await page.evaluate(() => document.documentElement.className)).toContain(
 ### G-5 复制反馈
 - 任一工具点击"复制结果"类按钮 → 按钮文案短暂变为"已复制!"，1 秒后恢复。
 
+### G-6 自动换行（输入/输出）
+- 打开任意带 `CodeEditor` 的页面（如 `#/base64`），输入一长行。
+- 期望：`textarea.editor-input` 计算样式 `white-space: pre-wrap`、`word-break: break-word`；所在 `.code-editor` 带 `with-wrap` class，且**无** `.line-numbers`（换行时行号隐藏）。
+- 长行在窄面板内软换行（不产生 `\n` 字符），横向无滚动条。
+
+```ts
+await page.goto('http://localhost:1420/#/base64')
+const ta = page.locator('textarea.editor-input:not([readonly])').first()
+await ta.fill('a'.repeat(500))
+const editor = ta.locator('xpath=ancestor::div[contains(@class,"code-editor")]')
+await expect(editor).toHaveClass(/with-wrap/)
+await expect(editor.locator('.line-numbers')).toHaveCount(0)
+```
+
 ---
 
 ## 2. 代码格式化 `#/json` / JsonFormatter
@@ -96,8 +111,15 @@ await expect(out.locator('span.f-tok.f-bool')).toContainText('true')
 ### J-4 SQL 格式化
 1. Header 第一个 Select 切到 `SQL`。
 2. 输入 `select id,name from users where id=1 order by name;` → 点"格式化"。
-3. 期望：`.format-output` 内关键字大写（含 `SELECT`/`FROM`/`WHERE`/`ORDER`），首行 `SELECT id,` 后换行，`ORDER BY` 合排（实际输出 `SELECT id,\nname\nFROM users\nWHERE id = 1\nORDER BY name ;`）。
-4. 关键字高亮：`SELECT` 应为 `.f-tok.f-keyword`。
+3. 期望：`.format-output` 内关键字大写（含 `SELECT`/`FROM`/`WHERE`/`ORDER`），`SELECT id, name` 单行（短列表不换行），`ORDER BY name;` 分号无前导空格。实际输出：
+   ```
+   SELECT id, name
+   FROM users
+   WHERE id = 1
+   ORDER BY name;
+   ```
+4. 函数调用内联：输入 `select count(*) from orders group by user_id;` → 输出 `SELECT COUNT(*)`（`COUNT(` 不加空格、括号内联）。
+5. 关键字高亮：`SELECT` 应为 `.f-tok.f-keyword`。
 
 ### J-5 Python / XML / HTML
 - Python：`x=1 # comment` → 注释 `.f-tok.f-comment` 存在，尾随空格被清理。
@@ -115,9 +137,11 @@ await expect(out.locator('span.f-tok.f-bool')).toContainText('true')
 
 ## 3. 格式转换 `#/converter` / FormatConverter
 
+> 输出区为高亮 `<pre class="converter-output">`，断言文本用 `.converter-output`。
+
 ### C-1 JSON → YAML
 - 输入 `{"name":"alice","age":30,"tags":["a","b"]}`。
-- 期望（只读输出区）：
+- 期望（`.converter-output` 文本）：
 ```
 name: alice
 age: 30
@@ -125,12 +149,13 @@ tags:
   - a
   - b
 ```
+- 语法高亮：`.converter-output` 内 `name`/`age`/`tags` 为 `.f-tok.f-key`，`30` 为 `.f-tok.f-number`。
 
 ### C-2 JSON → Python Dict
-- Header 右侧 Select 切到 `Python Dict` → 输出 `dict(name='alice', age=30, tags=['a', 'b'])`。
+- Header 右侧 Select 切到 `Python Dict` → 输出 `dict(name='alice', age=30, tags=['a', 'b'])`，含 `.f-tok.f-string`（引号值）与 `.f-tok.f-number`。
 
 ### C-3 JSON → JSON String
-- 切到 `JSON String` → 输出为带转义的外层引号字符串。
+- 切到 `JSON String` → 输出为带转义的外层引号字符串，外层 `"` 为 `.tok-string`。
 
 ### C-4 交换 ⇄
 - 点击"交换"→ 左侧 from/to 互换，原输出回填到输入框，并立即生成新方向的转换结果。

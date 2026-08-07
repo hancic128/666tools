@@ -5,7 +5,7 @@
 
 DevTools is a desktop utility collection for developers — formatting, encoding, conversion, debugging, and generation tools that process all data **locally** on your machine. Built with Vue 3 + Vite + TypeScript, packaged as a cross-platform desktop app with Tauri 2, and also runnable as a plain web app.
 
-![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.1.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/Download%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
+![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.2.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/Download%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
 
 > 中文说明见 [README.md](./README.md) · **English**
 
@@ -23,6 +23,8 @@ DevTools is a desktop utility collection for developers — formatting, encoding
 - **Local-first & private** — zero network calls from the tool logic; ideal for internal/sensitive data
 - **Dark/light/system themes** with persistence
 - **Copy feedback, swap, Cmd/Ctrl+Enter** shortcuts across tools
+- **Auto line wrap** — all input/output editors soft-wrap long lines by default (line numbers hide when wrapping)
+- **Syntax-highlighted output** — formatter and converter output panels get token-level highlighting (JSON/SQL/Python/XML/HTML/YAML)
 - **Realtime computation** for Hash / Regex / Case / Radix / Curl / Color / JWT / Diff / Stats / UUID / QR / Mermaid
 - **Input caching** for the formatter and Mermaid editors
 - **Zero-dependency algorithms** — hand-written MD5, YAML & Python-dict parsers, JSON tree folding, LCS diff (see [`src/utils/`](./src/utils))
@@ -77,6 +79,23 @@ npm run build       # type-check + web build → dist/
 npm run tauri build # desktop installers
 ```
 
+## Docker Deployment
+
+A `Dockerfile` (Node build → Nginx static serve) and `docker-compose.yml` are included for containerized deployment of the web build.
+
+```bash
+# Option 1: docker compose (recommended)
+docker compose up -d            # http://localhost:1420
+
+# Option 2: docker build + run
+docker build -t devtools .
+docker run -d --name devtools -p 1420:80 devtools
+```
+
+- Default port mapping is `1420:80`; adjust `ports` in `docker-compose.yml` as needed.
+- Routing uses hash mode (`#/json`), so no nginx SPA fallback is required; static assets are long-cached.
+- `.dockerignore` excludes `node_modules` / `dist` / `src-tauri/target` to keep the build context small.
+
 ## Project Structure
 
 ```
@@ -87,8 +106,14 @@ src/
 ├── utils/                          # pure functions — formatter, converters, md5, jsonTree, curl, case, color, radix …
 └── views/                          # 17 tool pages
 docs/
+├── usage.md                       # usage guide (run modes / operations / shortcuts / tool reference)
+├── deploy.md                      # deploy the web build to EdgeOne Pages
 └── test-cases.md                   # full Playwright test manual for all tools
 ```
+
+## Usage Guide
+
+Detailed run modes (desktop / browser / Docker), UI operations, shortcuts, and per-tool reference: **[docs/usage.md](./docs/usage.md)**.
 
 ## Testing
 
@@ -112,6 +137,8 @@ Pushing a `v*` tag triggers [`.github/workflows/release.yml`](./.github/workflow
 | Windows | x64 · x86 (32-bit) |
 
 `workflow_dispatch` also runs the build matrix manually without publishing. Installers are unsigned; macOS shows a Gatekeeper warning on first open.
+
+For the web build: pushing a `v*` tag also triggers [`.github/workflows/web-dist.yml`](./.github/workflows/web-dist.yml), which builds a static artifact (`web-dist` downloadable from the Actions page). Upload it to EdgeOne Pages to go live — full guide in **[docs/deploy.md](./docs/deploy.md)**.
 
 ## Contributing
 
