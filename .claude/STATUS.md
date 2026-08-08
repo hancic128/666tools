@@ -15,14 +15,14 @@
 ### 待办
 - [x] LICENSE 版权人署名：`Angryshark128`
 - [x] git init + 首次提交（`79dffb8`，身份 Angryshark708）+ 推送到远程
-- [x] GitHub 公开仓库创建：https://github.com/Angryshark128/devtools（main 分支，已同步）
+- [x] GitHub 公开仓库创建：https://github.com/Angryshark128/666tools（main 分支，已同步）
 - [x] 推 tag `v0.1.0` 触发 CI，**四平台构建 + Release 全部通过**（草稿 Release 已含 6 个安装包）
 - [x] 修复 CI：macos-x64 排队（macos-13 稀缺）→ 改 macos-14 交叉编译，node 20→22（提交 `672296d`）
 - [x] README 增加应用截图（docs/screenshots/，提交 `da6f21c`）
 - [x] 完整下载 6 个制品并文件级验证通过（大小逐字节核对 ✓）
   - macOS arm64/x64 DMG 挂载后应用二进制分别为 Mach-O arm64 / x86_64 ✓
   - Windows x64/x86 MSI 模板分别为 x64 / Intel(x86) ✓；NSIS exe 为合法安装器
-- [x] **Release v0.1.0 已发布（正式，非草稿）**：https://github.com/Angryshark128/devtools/releases/tag/v0.1.0
+- [x] **Release v0.1.0 已发布（正式，非草稿）**：https://github.com/Angryshark128/666tools/releases/tag/v0.1.0
 
 ## [2026-08-01] 开源化准备 — 文档重组完成
 
@@ -104,7 +104,7 @@
 ## [2026-08-01] 项目初始化
 
 ### 现状
-- 项目根目录：`~/Project/Devtools`
+- 项目根目录：`~/Project/666tools`
 - 存在 `Design.md`（开发者工具箱桌面应用设计文档，Vue 3 + Vite 8 + TS + Tauri 2）
 - 尚未创建任何源码
 

@@ -19,7 +19,7 @@ import {
 
 type Format = 'json' | 'sql' | 'python' | 'xml' | 'html'
 
-const CACHE_KEY = 'devtools-formatter-cache'
+const CACHE_KEY = '666tools-formatter-cache'
 
 const format = ref<Format>('json')
 const input = ref('')

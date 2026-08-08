@@ -45,10 +45,10 @@ Playwright 打开 `http://localhost:1420` 即可。Tauri 壳不参与前端功�
 
 ### G-2 主题切换与持久化
 1. 点击侧边栏底部主题按钮（`aside .footer-btn` 最后一个）。
-2. `document.documentElement` 应带 `dark` class；`localStorage['devtools-theme'] === 'dark'`。
+2. `document.documentElement` 应带 `dark` class；`localStorage['666tools-theme'] === 'dark'`。
 3. 再点一次 → 带 `light` class。
 4. 刷新页面 → 主题保持。
-5. 置空 `localStorage['devtools-theme']` 并刷新 → 恢复跟随系统（无 `dark`/`light` class）。
+5. 置空 `localStorage['666tools-theme']` 并刷新 → 恢复跟随系统（无 `dark`/`light` class）。
 
 ```ts
 await page.goto('http://localhost:1420/#/json')
@@ -59,7 +59,7 @@ expect(await page.evaluate(() => document.documentElement.className)).toContain(
 ### G-3 侧边栏折叠 / 展开 / 图钉
 1. 默认收起，宽度 64px（`aside.sidebar` 的 `width`）。
 2. `mouseenter` 侧边栏 → 展开到 200px；`mouseleave` → 收起。
-3. 点击图钉按钮（`.footer-btn` 第一个）→ 常驻展开，`localStorage['devtools-sidebar-pinned'] === '1'`；再点取消。
+3. 点击图钉按钮（`.footer-btn` 第一个）→ 常驻展开，`localStorage['666tools-sidebar-pinned'] === '1'`；再点取消。
 
 ### G-4 导航高亮
 - 点击任意 `.nav-item` → URL hash 变为对应路由，该项带 `active` class。
@@ -499,7 +499,7 @@ await expect(page.locator('.mermaid-canvas svg').first()).toBeVisible()
 
 ### E-6 导出与缓存
 - 点"SVG"下载 `.svg`、点"PNG"下载 2x PNG、"复制源码"复制 SVG 文本。
-- 修改代码 → 刷新 → 代码从 `devtools-mermaid-cache` 恢复。
+- 修改代码 → 刷新 → 代码从 `666tools-mermaid-cache` 恢复。
 
 ---
 

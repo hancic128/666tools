@@ -1,11 +1,11 @@
-# DevTools — Developer Toolbox
+# 666Tools — Developer Toolbox
 
 > **17 everyday developer utilities in one local-first desktop app.**
 > No account. No telemetry. No network requests. Everything runs in your browser.
 
-DevTools is a desktop utility collection for developers — formatting, encoding, conversion, debugging, and generation tools that process all data **locally** on your machine. Built with Vue 3 + Vite + TypeScript, packaged as a cross-platform desktop app with Tauri 2, and also runnable as a plain web app.
+666Tools is a desktop utility collection for developers — formatting, encoding, conversion, debugging, and generation tools that process all data **locally** on your machine. Built with Vue 3 + Vite + TypeScript, packaged as a cross-platform desktop app with Tauri 2, and also runnable as a plain web app.
 
-![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.2.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/Download%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
+![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.2.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/Download%20-Releases-6366f1)](https://github.com/Angryshark128/666tools/releases)
 
 > 中文说明见 [README.md](./README.md) · **English**
 
@@ -88,8 +88,8 @@ A `Dockerfile` (Node build → Nginx static serve) and `docker-compose.yml` are 
 docker compose up -d            # http://localhost:1420
 
 # Option 2: docker build + run
-docker build -t devtools .
-docker run -d --name devtools -p 1420:80 devtools
+docker build -t 666tools .
+docker run -d --name 666tools -p 1420:80 666tools
 ```
 
 - Default port mapping is `1420:80`; adjust `ports` in `docker-compose.yml` as needed.
@@ -127,7 +127,7 @@ npm run dev   # then run Playwright against http://localhost:1420 following the 
 
 ## Release & Build Artifacts
 
-**⬇️ [Download installers](https://github.com/Angryshark128/devtools/releases/latest)** — pick the build for your platform.
+**⬇️ [Download installers](https://github.com/Angryshark128/666tools/releases/latest)** — pick the build for your platform.
 
 Pushing a `v*` tag triggers [`.github/workflows/release.yml`](./.github/workflows/release.yml), which builds and publishes a release with installers for:
 

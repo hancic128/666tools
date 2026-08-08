@@ -58,7 +58,7 @@ jobs:
       - name: Upload artifacts (${{ matrix.name }})
         uses: actions/upload-artifact@v4
         with:
-          name: devtools-${{ matrix.name }}
+          name: 666tools-${{ matrix.name }}
           if-no-files-found: warn
           path: |
             src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg

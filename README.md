@@ -1,11 +1,11 @@
-# DevTools · 开发者工具箱
+# 666Tools · 开发者工具箱
 
 > **17 个常用开发者工具，一个本地优先的桌面应用。**
 > 无需账号、无遥测、无网络请求，所有数据处理都在本机完成。
 
 开发者工具箱是一个面向开发者的桌面工具集合——格式化、编码、转换、调试、生成五大类，全部数据**本地处理**。技术栈 Vue 3 + Vite + TypeScript，Tauri 2 打包为跨平台桌面应用，也可作为纯 Web 应用运行。
 
-![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.2.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/下载%20-Releases-6366f1)](https://github.com/Angryshark128/devtools/releases)
+![built with](https://img.shields.io/badge/built%20with-Vue%203-42b883) ![version](https://img.shields.io/badge/version-0.2.0-6366f1) ![license](https://img.shields.io/badge/license-MIT-green) [![Download](https://img.shields.io/badge/下载%20-Releases-6366f1)](https://github.com/Angryshark128/666tools/releases)
 
 > **中文** · [English](./README.en.md)
 
@@ -88,8 +88,8 @@ npm run tauri build # 打包桌面安装包
 docker compose up -d            # http://localhost:1420
 
 # 方式二：docker build + run
-docker build -t devtools .
-docker run -d --name devtools -p 1420:80 devtools
+docker build -t 666tools .
+docker run -d --name 666tools -p 1420:80 666tools
 ```
 
 - 端口默认映射 `1420:80`，如需修改在 `docker-compose.yml` 的 `ports` 调整。
@@ -127,7 +127,7 @@ npm run dev   # 然后按手册用 Playwright 验证 http://localhost:1420
 
 ## 发布与制品
 
-**⬇️ [下载安装包](https://github.com/Angryshark128/devtools/releases/latest)** — 按你的平台选择对应构建。
+**⬇️ [下载安装包](https://github.com/Angryshark128/666tools/releases/latest)** — 按你的平台选择对应构建。
 
 推送 `v*` tag 会触发 [`.github/workflows/release.yml`](./.github/workflows/release.yml)，构建并发布 Release，包含以下平台的安装包：
 

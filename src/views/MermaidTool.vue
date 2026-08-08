@@ -9,7 +9,7 @@ import mermaid from 'mermaid'
 
 type Mode = 'split' | 'code' | 'preview'
 
-const CACHE_KEY = 'devtools-mermaid-cache'
+const CACHE_KEY = '666tools-mermaid-cache'
 
 const SAMPLE = `flowchart TD
     A[用户访问] --> B{已登录?}

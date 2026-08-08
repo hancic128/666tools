@@ -63,7 +63,7 @@ git push origin v0.2.0
 
 1. 登录 [腾讯云控制台](https://console.cloud.tencent.com)，进入 **EdgeOne（边缘安全加速平台）**
 2. 快速入门中选 **Pages** → **创建项目**
-3. 框架选「静态网站 / 无框架」，项目名建议 `devtools`
+3. 框架选「静态网站 / 无框架」，项目名建议 `666tools`
 4. 把解压出的所有文件（`index.html` + `favicon.png` + `assets/` 目录）整体上传，点击部署
 5. 部署完成后获得默认访问域名（形如 `xxx.edgeone.app`），浏览器打开即可验证 17 个工具是否正常
 

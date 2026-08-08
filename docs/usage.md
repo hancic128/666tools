@@ -1,6 +1,6 @@
 # 使用文档 / Usage Guide
 
-> 开发者工具箱（DevTools）支持 **桌面应用、浏览器、Docker** 三种运行方式，所有数据处理均在本地完成，无网络请求、无账号。
+> 开发者工具箱（666Tools）支持 **桌面应用、浏览器、Docker** 三种运行方式，所有数据处理均在本地完成，无网络请求、无账号。
 
 ## 目录
 
@@ -22,7 +22,7 @@
 
 ### 桌面应用（推荐）
 
-从 [Releases 页面](https://github.com/Angryshark128/devtools/releases/latest) 下载对应平台安装包：
+从 [Releases 页面](https://github.com/Angryshark128/666tools/releases/latest) 下载对应平台安装包：
 
 | 平台 | 架构 |
 |---|---|
@@ -45,8 +45,8 @@ npm run dev        # 打开 http://localhost:1420
 docker compose up -d            # 访问 http://localhost:1420
 
 # 方式二：docker build + run
-docker build -t devtools .
-docker run -d --name devtools -p 1420:80 devtools
+docker build -t 666tools .
+docker run -d --name 666tools -p 1420:80 666tools
 ```
 
 - 默认端口映射 `1420:80`，改端口在 `docker-compose.yml` 的 `ports` 调整。

@@ -1,12 +1,12 @@
 [package]
-name = "devtools"
+name = "tools666"
 version = "0.1.0"
 description = "开发者工具箱"
 authors = ["shark"]
 edition = "2021"
 
 [lib]
-name = "devtools_lib"
+name = "tools666_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

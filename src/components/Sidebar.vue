@@ -33,11 +33,11 @@ const TOOLS: ToolItem[] = [
 const route = useRoute()
 
 const expanded = ref(false)
-const pinned = ref(localStorage.getItem('devtools-sidebar-pinned') === '1')
+const pinned = ref(localStorage.getItem('666tools-sidebar-pinned') === '1')
 const theme = ref<'light' | 'dark' | 'system'>(initTheme())
 
 function initTheme(): 'light' | 'dark' | 'system' {
-  const t = localStorage.getItem('devtools-theme')
+  const t = localStorage.getItem('666tools-theme')
   return t === 'dark' || t === 'light' ? t : 'system'
 }
 
@@ -61,12 +61,12 @@ function onLeave() {
 }
 function togglePin() {
   pinned.value = !pinned.value
-  localStorage.setItem('devtools-sidebar-pinned', pinned.value ? '1' : '0')
+  localStorage.setItem('666tools-sidebar-pinned', pinned.value ? '1' : '0')
   if (!pinned.value) expanded.value = false
 }
 function toggleTheme() {
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
-  localStorage.setItem('devtools-theme', theme.value)
+  localStorage.setItem('666tools-theme', theme.value)
   applyTheme(theme.value)
 }
 

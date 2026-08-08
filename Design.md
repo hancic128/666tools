@@ -8,9 +8,9 @@
 
 ## 1. 项目简介 / Overview
 
-开发者工具箱（DevTools）是一个**本地优先的桌面工具集合**，整合了开发者日常最常用的 17 个转换/编码/调试工具，全部数据在浏览器本地处理，不上传任何内容。应用以 Tauri 2 打包为桌面应用，前端为纯 Web（Vue 3），可独立以浏览器方式运行。
+开发者工具箱（666Tools）是一个**本地优先的桌面工具集合**，整合了开发者日常最常用的 17 个转换/编码/调试工具，全部数据在浏览器本地处理，不上传任何内容。应用以 Tauri 2 打包为桌面应用，前端为纯 Web（Vue 3），可独立以浏览器方式运行。
 
-DevTools is a **local-first desktop tool collection** bundling 17 everyday developer utilities. All processing happens in-browser; nothing is uploaded. It ships as a Tauri 2 desktop app with a pure-Web frontend (Vue 3) that also runs standalone in a browser.
+666Tools is a **local-first desktop tool collection** bundling 17 everyday developer utilities. All processing happens in-browser; nothing is uploaded. It ships as a Tauri 2 desktop app with a pure-Web frontend (Vue 3) that also runs standalone in a browser.
 
 **核心特性 / Key features**
 
@@ -45,7 +45,7 @@ npm run tauri build # 打包桌面安装包
 ## 3. 项目结构 / Project Structure
 
 ```
-Devtools/
+666tools/
 ├── index.html                    # HTML 入口（挂载 #app）
 ├── vite.config.ts                # @ 别名 → src/，端口 1420 strictPort，watch 忽略 src-tauri
 ├── tsconfig.json                 # strict、ES2021 target、noUnusedLocals/Parameters
@@ -84,14 +84,14 @@ views（工具页，组合组件 + 调用 utils）
 - **单向输入→输出**：工具页用 `computed` 派生输出（格式化、转换、统计等），或 `watch` + 副作用（Hash 实时计算、二维码渲染、Mermaid 渲染）。
 - **同步保护**：ColorTool 用 `syncing` 标志避免 HEX/RGB/HSL 三向联动时互相触发。
 - **异步竞态保护**：MermaidTool 用 `renderSeq` 自增序号丢弃过期渲染结果。
-- **持久化**：仅 localStorage（`devtools-*` 前缀），键见下表：
+- **持久化**：仅 localStorage（`666tools-*` 前缀），键见下表：
 
 | localStorage 键 / Key | 用途 / Purpose |
 |---|---|
-| `devtools-theme` | 主题：`light` / `dark` / 缺省=跟随系统 |
-| `devtools-sidebar-pinned` | 侧边栏图钉：`'1'` / `'0'` |
-| `devtools-formatter-cache` | 格式化器输入 + 选项（`{input, format, indentSize, collapseDepth}`） |
-| `devtools-mermaid-cache` | Mermaid 代码 |
+| `666tools-theme` | 主题：`light` / `dark` / 缺省=跟随系统 |
+| `666tools-sidebar-pinned` | 侧边栏图钉：`'1'` / `'0'` |
+| `666tools-formatter-cache` | 格式化器输入 + 选项（`{input, format, indentSize, collapseDepth}`） |
+| `666tools-mermaid-cache` | Mermaid 代码 |
 
 ### 4.3 路由 / Routing
 
@@ -193,7 +193,7 @@ Web Crypto API 不含 MD5，故手写实现（约 95 行）。UTF-8 编码（`Te
 - **JSON 折叠树**：核心特性。解析后渲染为 HTML 树（`jsonTree.ts`），深度 ≥ collapseDepth 默认折叠；点击 `[`/`{` 或预览文本切换；"全部展开/全部折叠"按钮。折叠状态用 `reactive(new Set<string>())`。
 - SQL/Python/XML/HTML 输出带 `.f-tok.*` 语法高亮。
 - 选项：缩进 2/4，折叠深度 -1（不折叠）~4。
-- 缓存 `devtools-formatter-cache`；Cmd+Enter = 格式化并复制；"格式化"按钮与"复制结果"均触发 `copyOutput`。
+- 缓存 `666tools-formatter-cache`；Cmd+Enter = 格式化并复制；"格式化"按钮与"复制结果"均触发 `copyOutput`。
 
 ### 7.2 格式转换 FormatConverter（`/converter`，紫色 #8B5CF6）
 JSON ↔ JSON String ↔ YAML ↔ Python Dict 双向互转。⇄ 按钮交换源/目标格式并把输出回填输入。输出为只读 computed，Cmd+Enter 复制。
@@ -249,7 +249,7 @@ JSON ↔ JSON String ↔ YAML ↔ Python Dict 双向互转。⇄ 按钮交换源
 - 渲染：`mermaid.initialize`（主题随当前明暗自动切换 `dark`/`default`，`securityLevel: 'loose'`，`useMaxWidth: false`）；`MutationObserver` 监听 `documentElement` class 变化实现主题联动；`renderSeq` 丢弃过期结果。
 - 预览交互：Ctrl+滚轮缩放（0.25x–4x），拖拽平移，＋/－/重置按钮。
 - 导出：SVG 下载、PNG 下载（2x 分辨率白底）、复制 SVG 源码。
-- 预置登录流程图示例；代码缓存 `devtools-mermaid-cache`。
+- 预置登录流程图示例；代码缓存 `666tools-mermaid-cache`。
 
 ## 8. 设计系统 / Design System（`src/styles/main.css`）
 
@@ -299,7 +299,7 @@ JSON ↔ JSON String ↔ YAML ↔ Python Dict 双向互转。⇄ 按钮交换源
 - 窗口 1200×800，最小 800×600，标题"开发者工具箱"，`withGlobalTauri: true`，CSP `null`（开发宽松）。
 - 插件仅 `tauri-plugin-shell`（Rust `lib.rs` 注册）；`capabilities/default.json` 仅 `core:default`。
 - **不含 HTTP 插件**（原设计中的 REST 客户端已移除，详见 `.claude/DECISIONS.md`）。
-- identifier `com.shark.devtools`，productName `DevTools`，版本 0.1.0。
+- identifier `com.shark.666tools`，productName `666Tools`，版本 0.1.0。
 
 ## 11. 与早期设计的差异 / Deviations from the Original Design
 
@@ -328,5 +328,5 @@ JSON ↔ JSON String ↔ YAML ↔ Python Dict 双向互转。⇄ 按钮交换源
 
 ### 12.3 开源注意事项 / Notes
 - 应用内所有文本为中文；开源时如需国际化，优先抽 `utils/`（无 UI 依赖）后处理 UI 文案。
-- `localStorage` 键以 `devtools-` 前缀隔离，避免与宿主页面冲突。
+- `localStorage` 键以 `666tools-` 前缀隔离，避免与宿主页面冲突。
 - 所有数据本地处理，无遥测、无网络请求——这是项目向开源社区强调的隐私卖点。
