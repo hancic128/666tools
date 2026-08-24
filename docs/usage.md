@@ -59,7 +59,7 @@ docker run -d --name 666tools -p 1420:80 666tools
 
 ### 导航与侧边栏
 
-- 左侧 17 个工具按类别分组，点击切换。
+- 左侧 18 个工具按类别分组，点击切换。
 - 侧边栏默认折叠（仅图标），鼠标悬停展开；点图钉按钮可常驻展开（状态持久化）。
 
 ### 主题
@@ -90,6 +90,7 @@ docker run -d --name 666tools -p 1420:80 666tools
 | 时间戳转换 | `#/time` | 时间戳⇄日期（s/ms/μs/ns 自动判定）、日期→时间戳、时长换算、实时时钟 |
 | 文本对比 | `#/diff` | LCS 逐行对比；text / JSON / properties 三种模式 |
 | Mermaid | `#/mermaid` | Mermaid 流程图渲染；缩放/平移；SVG/PNG 导出；暗色主题联动 |
+| MD图片 | `#/md-image` | Markdown 转图片；5 套主题排版；3:4 / 1:1 / 9:16 比例；导出/复制 PNG |
 | Base64 | `#/base64` | UTF-8 安全的 Base64 编解码，⇄ 交换 |
 | URL | `#/url` | URL / 文本的百分号编码与解码 |
 | 正则测试 | `#/regex` | 实时匹配高亮 + 匹配列表；支持 `g/i` 等 flag |

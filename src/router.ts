@@ -19,6 +19,7 @@ const routes = [
   { path: '/qr', name: 'qr', component: () => import('@/views/QrTool.vue') },
   { path: '/radix', name: 'radix', component: () => import('@/views/RadixTool.vue') },
   { path: '/mermaid', name: 'mermaid', component: () => import('@/views/MermaidTool.vue') },
+  { path: '/md-image', name: 'md-image', component: () => import('@/views/MarkdownImage.vue') },
 ]
 
 export const router = createRouter({

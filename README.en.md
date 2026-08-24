@@ -19,7 +19,7 @@
 
 ## Features
 
-- **17 tools** — formatter, converter, time, diff, Mermaid, Base64, URL, regex, JWT, Hash, UUID, color, curl, text stats, case, QR code, radix
+- **18 tools** — formatter, converter, time, diff, Mermaid, MD image, Base64, URL, regex, JWT, Hash, UUID, color, curl, text stats, case, QR code, radix
 - **Local-first & private** — zero network calls from the tool logic; ideal for internal/sensitive data
 - **Dark/light/system themes** with persistence
 - **Copy feedback, swap, Cmd/Ctrl+Enter** shortcuts across tools
@@ -38,6 +38,7 @@
 | Time | Timestamp ⇄ date · duration conversion | `#/time` |
 | Diff | LCS text / JSON / properties diff | `#/diff` |
 | Diagram | Mermaid → SVG with zoom/pan/export | `#/mermaid` |
+| Image | Markdown → themed image (mobile portrait, export PNG) | `#/md-image` |
 | Encode | Base64 · URL encode/decode | `#/base64` `#/url` |
 | Debug | Regex tester · JWT parser (exp/iat) | `#/regex` `#/jwt` |
 | Generate | Hash (MD5/SHA) · UUID v4 · QR code · radix | `#/hash` `#/uuid` `#/qr` `#/radix` |
@@ -50,7 +51,7 @@
 | Frontend | Vue 3 (Composition API), Vue Router 4, TypeScript (strict) |
 | Build | Vite 8, `vue-tsc` type-checking |
 | Desktop | Tauri 2 (shell plugin only) |
-| Runtime libs | `mermaid`, `qrcode`, `sql-formatter` |
+| Runtime libs | `mermaid`, `qrcode`, `sql-formatter`, `markdown-it`, `html-to-image` |
 
 ## Getting Started
 

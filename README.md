@@ -19,7 +19,7 @@
 
 ## 功能特性
 
-- **17 个工具**：格式化、转换、时间、对比、Mermaid、Base64、URL、正则、JWT、Hash、UUID、颜色、Curl、统计、命名、二维码、进制
+- **18 个工具**：格式化、转换、时间、对比、Mermaid、MD图片、Base64、URL、正则、JWT、Hash、UUID、颜色、Curl、统计、命名、二维码、进制
 - **本地优先 & 隐私**：工具逻辑零网络请求，适合处理内部/敏感数据
 - **亮/暗/跟随系统** 三态主题，自动持久化
 - **复制反馈、交换、Cmd/Ctrl+Enter** 快捷键
@@ -38,6 +38,7 @@
 | 时间 | 时间戳 ⇄ 日期 · 时长换算 | `#/time` |
 | 对比 | LCS 文本 / JSON / properties 差异 | `#/diff` |
 | 图表 | Mermaid → SVG（缩放/平移/导出） | `#/mermaid` |
+| 图片 | Markdown → 主题排版图片（手机竖版，导出 PNG） | `#/md-image` |
 | 编码 | Base64 · URL 编解码 | `#/base64` `#/url` |
 | 调试 | 正则测试 · JWT 解析（exp/iat） | `#/regex` `#/jwt` |
 | 生成 | Hash（MD5/SHA）· UUID v4 · 二维码 · 进制 | `#/hash` `#/uuid` `#/qr` `#/radix` |
@@ -50,7 +51,7 @@
 | 前端 | Vue 3（Composition API）、Vue Router 4、TypeScript（strict） |
 | 构建 | Vite 8、`vue-tsc` 类型检查 |
 | 桌面 | Tauri 2（仅 shell 插件） |
-| 运行时依赖 | `mermaid`、`qrcode`、`sql-formatter` |
+| 运行时依赖 | `mermaid`、`qrcode`、`sql-formatter`、`markdown-it`、`html-to-image` |
 
 ## 快速开始
 
@@ -104,7 +105,7 @@ src/
 ├── styles/main.css                 # 设计系统：CSS 变量、reset、布局类、语法高亮 token
 ├── components/                     # Button / Select / CodeEditor / JsonView / ViewHeader / Sidebar …
 ├── utils/                          # 纯函数：formatter / converters / md5 / jsonTree / curl / case / color / radix …
-└── views/                          # 17 个工具页
+└── views/                          # 18 个工具页
 docs/
 ├── usage.md                       # 使用文档（运行方式 / 操作 / 快捷键 / 工具说明）
 ├── deploy.md                      # Web 版部署到 EdgeOne Pages 指南
