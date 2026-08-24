@@ -88,13 +88,50 @@ function tokenizeSql(sql: string): string[] {
 /**
  * SQL 格式化：基于 sql-formatter（MySQL 方言）。
  * 关键字统一大写；缩进宽度由 UI 的 indentSize 传入（2 / 4 空格）。
+ * 方言无法解析的语法（如 `[('2026-08-01', ...)]` 方括号列表）降级到
+ * fallbackFormatSql，保证不抛错。
  */
 export function formatSql(sql: string, indentSize = 2): string {
-  return formatDialect(sql, {
-    dialect: mysql,
-    keywordCase: 'upper',
-    tabWidth: indentSize,
-  })
+  try {
+    return formatDialect(sql, {
+      dialect: mysql,
+      keywordCase: 'upper',
+      tabWidth: indentSize,
+    })
+  } catch {
+    return fallbackFormatSql(sql)
+  }
+}
+
+/**
+ * 宽松兜底格式化：不做语法解析，仅按 token 重排——关键字大写、
+ * 逗号/括号/分号紧贴、保留原换行。输出可用但不保证严格对齐。
+ */
+function fallbackFormatSql(sql: string): string {
+  const out: string[] = []
+  let lineStart = true
+  for (const t of tokenizeSql(sql)) {
+    if (t === '\n') {
+      out.push('\n')
+      lineStart = true
+      continue
+    }
+    if (t === ' ') {
+      if (!lineStart && out.length && out[out.length - 1] !== ' ') out.push(' ')
+      continue
+    }
+    const isWord = /^[A-Za-z_][A-Za-z0-9_]*$/.test(t)
+    const disp = isWord && SQL_KEYWORDS.has(t.toUpperCase()) ? t.toUpperCase() : t
+    const last = out[out.length - 1]
+    const noSpace =
+      lineStart ||
+      disp === ',' || disp === ')' || disp === ';' || disp === '.' ||
+      last === '(' || last === '.' || last === ' '
+    if (!noSpace) out.push(' ')
+    out.push(disp)
+    lineStart = false
+  }
+  return out.join('').trim()
 }
 
 export function highlightSql(code: string): string {

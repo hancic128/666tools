@@ -32,6 +32,46 @@ const TOOLS: ToolItem[] = [
 
 const route = useRoute()
 
+/* ---------- 搜索 ---------- */
+const query = ref('')
+
+/* ---------- 工具置顶（仅本地缓存） ---------- */
+const PIN_KEY = '666tools-pinned-tools'
+const pinnedTools = ref<string[]>(loadPinned())
+
+function loadPinned(): string[] {
+  try {
+    const arr = JSON.parse(localStorage.getItem(PIN_KEY) ?? '[]')
+    return Array.isArray(arr) ? arr.filter((n: unknown) => typeof n === 'string' && TOOLS.some((t) => t.name === n)) : []
+  } catch {
+    return []
+  }
+}
+function savePinned() {
+  localStorage.setItem(PIN_KEY, JSON.stringify(pinnedTools.value))
+}
+function toggleToolPin(name: string) {
+  pinnedTools.value = pinnedTools.value.includes(name)
+    ? pinnedTools.value.filter((n) => n !== name)
+    : [...pinnedTools.value, name]
+  savePinned()
+}
+const isToolPinned = (name: string) => pinnedTools.value.includes(name)
+
+/** 搜索过滤 + 置顶排序（置顶优先，其余保持原顺序） */
+const visibleTools = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  const filtered = q
+    ? TOOLS.filter(
+        (t) =>
+          t.label.toLowerCase().includes(q) ||
+          t.name.toLowerCase().includes(q) ||
+          t.path.toLowerCase().includes(q),
+      )
+    : TOOLS
+  return [...filtered.filter((t) => pinnedTools.value.includes(t.name)), ...filtered.filter((t) => !pinnedTools.value.includes(t.name))]
+})
+
 const expanded = ref(false)
 const pinned = ref(localStorage.getItem('666tools-sidebar-pinned') === '1')
 const theme = ref<'light' | 'dark' | 'system'>(initTheme())
@@ -92,22 +132,44 @@ onBeforeUnmount(() => media.removeEventListener('change', onSystemChange))
           <polyline points="8 6 2 12 8 18" />
         </svg>
       </div>
-      <span v-if="expanded || pinned" class="brand-name">开发者工具箱</span>
+      <span v-if="expanded || pinned" class="brand-name">666tools</span>
+    </div>
+
+    <div v-if="expanded || pinned" class="sidebar-search">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input v-model="query" type="text" placeholder="搜索工具" />
     </div>
 
     <nav class="sidebar-nav">
-      <RouterLink
-        v-for="tool in TOOLS"
-        :key="tool.name"
-        :to="tool.path"
-        class="nav-item"
-        :class="{ active: isActive(tool) }"
-      >
-        <span class="nav-icon" :style="{ color: tool.color }">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="tool.icon"></svg>
+      <div v-for="tool in visibleTools" :key="tool.name" class="nav-row">
+        <RouterLink
+          :to="tool.path"
+          class="nav-item"
+          :class="{ active: isActive(tool) }"
+        >
+          <span class="nav-icon" :style="{ color: tool.color }">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="tool.icon"></svg>
+          </span>
+          <span v-if="expanded || pinned" class="nav-label">{{ tool.label }}</span>
+        </RouterLink>
+        <span
+          v-if="expanded || pinned"
+          class="pin-btn"
+          :class="{ pinned: isToolPinned(tool.name) }"
+          :title="isToolPinned(tool.name) ? '取消置顶' : '置顶'"
+          role="button"
+          @click.stop="toggleToolPin(tool.name)"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 17v5" />
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z" />
+          </svg>
         </span>
-        <span v-if="expanded || pinned" class="nav-label">{{ tool.label }}</span>
-      </RouterLink>
+      </div>
+      <p v-if="visibleTools.length === 0" class="search-empty">未找到工具</p>
     </nav>
 
     <div class="sidebar-footer">
@@ -176,6 +238,51 @@ onBeforeUnmount(() => media.removeEventListener('change', onSystemChange))
   white-space: nowrap;
 }
 
+.sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  margin: 0 var(--space-sm) var(--space-sm);
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.sidebar-search:focus-within {
+  border-color: var(--brand-primary);
+}
+
+.sidebar-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.sidebar-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.nav-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-empty {
+  padding: var(--space-md) var(--space-sm);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
@@ -225,6 +332,8 @@ onBeforeUnmount(() => media.removeEventListener('change', onSystemChange))
 }
 
 .nav-item {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -247,6 +356,48 @@ onBeforeUnmount(() => media.removeEventListener('change', onSystemChange))
 .nav-item.active {
   background: rgba(99, 102, 241, 0.14);
   color: var(--text-primary);
+}
+
+/* 展开态为置顶按钮预留右侧空间 */
+.nav-row .nav-item {
+  padding-right: 30px;
+}
+.sidebar.collapsed .nav-row .nav-item {
+  padding-right: var(--space-sm);
+}
+
+/* 置顶按钮：默认隐藏，行悬停时显示 */
+.pin-btn {
+  position: absolute;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  opacity: 0;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.nav-row:hover .pin-btn,
+.pin-btn:focus-visible,
+.pin-btn.pinned {
+  opacity: 1;
+}
+
+.pin-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.pin-btn.pinned {
+  color: var(--brand-primary);
 }
 
 .nav-icon {
