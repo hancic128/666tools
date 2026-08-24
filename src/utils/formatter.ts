@@ -76,7 +76,7 @@ function tokenizeSql(sql: string): string[] {
         if (sql[j] === '\n') hasNl = true
         j++
       }
-      tokens.push(hasNl ? '\n' : ' ')
+      tokens.push(hasNl ? '\n' : sql.slice(i, j))
       i = j
       continue
     }
@@ -89,11 +89,13 @@ function tokenizeSql(sql: string): string[] {
 /**
  * SQL 格式化：基于 sql-formatter（MySQL 方言）。
  * 关键字统一大写；缩进宽度由 UI 的 indentSize 传入（2 / 4 空格）。
- * 方言无法解析的语法（如 Doris 分区 `VALUES [ ('2026-08-01'), ...)`、
- * 方括号列表）降级到 fallbackFormatSql，保证不抛错。
+ * Doris/StarRocks 特有语法（DUPLICATE KEY、VALUES [ 分区、PROPERTIES 等）
+ * sql-formatter 无法识别，直接走 fallbackFormatSql 保留原有换行与缩进；
+ * 其他解析失败的语法同样降级，保证不抛错。
  */
 export function formatSql(sql: string, indentSize = 2): string {
   const cleaned = cleanBackticks(sql)
+  if (DORIS_HINTS.test(cleaned)) return fallbackFormatSql(cleaned)
   try {
     return formatDialect(cleaned, {
       dialect: mysql,
@@ -104,6 +106,9 @@ export function formatSql(sql: string, indentSize = 2): string {
     return fallbackFormatSql(cleaned)
   }
 }
+
+/** Doris/StarRocks 特有语法特征 */
+const DORIS_HINTS = /\b(DUPLICATE KEY|DISTRIBUTED BY|ENGINE\s*=\s*OLAP|PROPERTIES|VALUES\s*\[)/i
 
 /** 清理反引号标识符内部的首尾空白：` x ` → `x` */
 function cleanBackticks(sql: string): string {
@@ -124,12 +129,12 @@ function fallbackFormatSql(sql: string): string {
   let backtick = false // 是否在反引号标识符内
   let lineStart = true
   for (const t of tokenizeSql(sql)) {
-    if (t === ' ') continue
     if (t === '\n') {
       if (out.length && out[out.length - 1] !== '\n') out.push('\n')
       lineStart = true
       continue
     }
+    if (t.trim() === '') continue
     let disp = t
     if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(disp)) {
       const u = disp.toUpperCase()
@@ -162,7 +167,7 @@ export function highlightSql(code: string): string {
   return tokenizeSql(code)
     .map((t) => {
       if (t === '\n') return '\n'
-      if (t.trim() === '') return ' '
+      if (t.trim() === '') return esc(t)
       if (t.startsWith('--')) return `<span class="f-tok f-comment">${esc(t)}</span>`
       if (t[0] === "'" || t[0] === '"') return `<span class="f-tok f-string">${esc(t)}</span>`
       if (/^\d/.test(t)) return `<span class="f-tok f-number">${esc(t)}</span>`

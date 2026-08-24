@@ -128,9 +128,5 @@ export const MD_THEMES: MdTheme[] = [
 /** 渲染画布宽度（px，手机竖版基准） */
 export const MD_CANVAS_W = 750
 
-/** 可选导出比例：宽 : 高 */
-export const MD_RATIOS = [
-  { id: '3-4', name: '3:4', w: 750, h: 1000, desc: '小红书封面' },
-  { id: '1-1', name: '1:1', w: 750, h: 750, desc: '正方形' },
-  { id: '9-16', name: '9:16', w: 750, h: 1333, desc: '竖屏故事' },
-]
+/** 多页模式每页高度（px，约 3:4 手机画幅） */
+export const MD_PAGE_H = 1000

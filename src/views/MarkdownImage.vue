@@ -2,10 +2,10 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import ViewHeader from '@/components/ViewHeader.vue'
 import Button from '@/components/Button.vue'
-import Select from '@/components/Select.vue'
+import ThemePicker from '@/components/ThemePicker.vue'
 import MarkdownIt from 'markdown-it'
-import { toBlob, toPng } from 'html-to-image'
-import { MD_CANVAS_W, MD_RATIOS, MD_THEMES } from '@/utils/mdThemes'
+import { toBlob, toCanvas, toPng } from 'html-to-image'
+import { MD_CANVAS_W, MD_PAGE_H, MD_THEMES } from '@/utils/mdThemes'
 
 /* ---------- Markdown 解析 ---------- */
 
@@ -52,20 +52,15 @@ const EXAMPLE = `# 提高效率的 5 个小技巧
 
 const input = ref(EXAMPLE)
 const themeId = ref('warm')
-const ratioId = ref('3-4')
+const multiPage = ref(false)
 
 const theme = computed(() => MD_THEMES.find((t) => t.id === themeId.value) ?? MD_THEMES[0])
-const ratio = computed(() => MD_RATIOS.find((r) => r.id === ratioId.value) ?? MD_RATIOS[0])
-
-const THEME_OPTIONS = MD_THEMES.map((t) => ({ value: t.id, label: t.name }))
-const RATIO_OPTIONS = MD_RATIOS.map((r) => ({ value: r.id, label: r.name }))
 
 const html = computed(() => md.render(input.value))
 
 const canvasStyle = computed(() => ({
   ...theme.value.vars,
   width: MD_CANVAS_W + 'px',
-  minHeight: ratio.value.h + 'px',
   background: 'var(--md-bg)',
 }))
 
@@ -102,15 +97,35 @@ const EXPORT_OPTS = { pixelRatio: 2, cacheBust: true }
 const copied = ref(false)
 let copyTimer: number | undefined
 
+function downloadPng(dataUrl: string, name: string) {
+  const a = document.createElement('a')
+  a.download = name
+  a.href = dataUrl
+  a.click()
+}
+
 async function exportPng() {
   const node = canvasRef.value
   if (!node) return
   try {
-    const dataUrl = await toPng(node, EXPORT_OPTS)
-    const a = document.createElement('a')
-    a.download = `md-image-${Date.now()}.png`
-    a.href = dataUrl
-    a.click()
+    if (!multiPage.value) {
+      // 单页：整图一张
+      downloadPng(await toPng(node, EXPORT_OPTS), `md-image-${Date.now()}.png`)
+      return
+    }
+    // 多页：整图按页高切分，每页一张
+    const full = await toCanvas(node, EXPORT_OPTS)
+    const pageH = MD_PAGE_H * EXPORT_OPTS.pixelRatio
+    const pages = Math.max(1, Math.ceil(full.height / pageH))
+    for (let i = 0; i < pages; i++) {
+      const page = document.createElement('canvas')
+      page.width = full.width
+      page.height = Math.min(pageH, full.height - i * pageH)
+      const ctx = page.getContext('2d')
+      if (!ctx) return
+      ctx.drawImage(full, 0, -i * pageH)
+      downloadPng(page.toDataURL('image/png'), pages > 1 ? `md-image-${i + 1}-${pages}.png` : `md-image-${Date.now()}.png`)
+    }
   } catch (e) {
     alert('导出失败：' + String((e as Error).message || e))
   }
@@ -135,8 +150,16 @@ async function copyImage() {
 <template>
   <div class="tool-page">
     <ViewHeader title="Markdown 转图片" description="主题排版 · 手机竖版 · 导出 PNG" tool-color="var(--tool-mdimg)">
-      <Select :model-value="themeId" :options="THEME_OPTIONS" width="92px" @update:model-value="(v: string) => (themeId = v)" />
-      <Select :model-value="ratioId" :options="RATIO_OPTIONS" width="76px" @update:model-value="(v: string) => (ratioId = v)" />
+      <ThemePicker :model-value="themeId" :themes="MD_THEMES" @update:model-value="(v: string) => (themeId = v)" />
+      <Button
+        variant="ghost"
+        size="sm"
+        :class="{ 'btn-toggle-active': multiPage }"
+        :title="multiPage ? '关闭分页：导出单张长图' : '开启分页：按每页 ' + MD_PAGE_H + 'px 切分多张'"
+        @click="multiPage = !multiPage"
+      >
+        多页
+      </Button>
       <Button variant="ghost" size="sm" @click="loadExample">示例</Button>
       <Button variant="secondary" size="md" @click="copyImage">{{ copied ? '已复制!' : '复制图片' }}</Button>
       <Button variant="primary" size="md" @click="exportPng">导出 PNG</Button>
@@ -151,10 +174,10 @@ async function copyImage() {
       </div>
       <div class="panel">
         <div class="panel-header">
-          <span class="panel-title">预览 · {{ theme.name }} · {{ ratio.name }}</span>
+          <span class="panel-title">预览 · {{ theme.name }}{{ multiPage ? ` · 多页（每页 ${MD_PAGE_H}px）` : '' }}</span>
         </div>
         <div class="panel-body">
-          <div class="md-stage" ref="stageRef" :style="{ height: stageH + 'px' }">
+          <div class="md-stage" ref="stageRef" :style="{ minHeight: stageH + 'px' }">
             <div
               class="md-scale"
               :style="{ width: MD_CANVAS_W + 'px', transform: `scale(${scale})`, transformOrigin: 'top left' }"
@@ -186,12 +209,18 @@ async function copyImage() {
   box-sizing: border-box;
 }
 
+/* 多页开关激活态 */
+.btn-toggle-active {
+  background: rgba(99, 102, 241, 0.16);
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
 .md-stage {
-  overflow: auto;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: var(--space-md);
+  padding: var(--space-lg);
   box-sizing: border-box;
 }
 
@@ -209,7 +238,7 @@ async function copyImage() {
 
 /* Markdown 排版（主题变量来自 .md-canvas 内联样式） */
 .md-body {
-  padding: 52px 48px;
+  padding: 72px 60px;
   font-family: var(--md-font);
   color: var(--md-text);
   font-size: 26px;
