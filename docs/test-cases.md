@@ -135,7 +135,8 @@ await expect(out.locator('span.f-tok.f-bool')).toContainText('true')
 5. 复合关键字/运算符不断行：输入 `select * from a left join b on a.id=b.id where a.x>=1;` → `LEFT JOIN` 同行、`>=` 不拆分。
 6. 多行 VALUES：输入 `insert into t(a,b) values (1,'x'),(2,'y');` → 每个元组独立一行、逗号后换行。
 7. 无法解析的语法不报错：输入含 `[('2026-08-01', '2026-08-31')]` 方括号列表的 SQL → 输出区不显示 `.format-error`，降级为 token 级重排（关键字大写、原样保留）。
-8. 关键字高亮：`SELECT` 应为 `.f-tok.f-keyword`。
+8. Doris DDL 缩进与反引号清理：输入 `CREATE TABLE \` x \` (\n\` id \` INT NOT NULL\n) ENGINE = OLAP` 这类反引号带空格的语句 → 输出 `` `x` ``、`` `id` ``（内部空白清理），列定义缩进 2 空格、`ENGINE = OLAP` 顶格，不报错。
+9. 关键字高亮：`SELECT` 应为 `.f-tok.f-keyword`。
 
 ### J-5 Python / XML / HTML
 - Python：`x=1 # comment` → 注释 `.f-tok.f-comment` 存在，尾随空格被清理。

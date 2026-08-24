@@ -28,6 +28,7 @@ const SQL_KEYWORDS = new Set([
   'NUMERIC', 'FLOAT', 'DOUBLE', 'REAL', 'BOOLEAN', 'BIT', 'DATETIME', 'TIMESTAMP',
   'TIME', 'YEAR', 'CHAR', 'VARCHAR', 'TEXT', 'BLOB', 'ENUM', 'JSON',
   'AUTO_INCREMENT', 'ENGINE', 'CHARSET', 'COLLATE', 'COMMENT', 'LOCK', 'SHARE',
+  'DUPLICATE', 'DISTRIBUTED', 'HASH', 'BUCKETS', 'PROPERTIES', 'OLAP', 'LESS', 'THAN',
 ])
 
 function tokenizeSql(sql: string): string[] {
@@ -88,48 +89,71 @@ function tokenizeSql(sql: string): string[] {
 /**
  * SQL 格式化：基于 sql-formatter（MySQL 方言）。
  * 关键字统一大写；缩进宽度由 UI 的 indentSize 传入（2 / 4 空格）。
- * 方言无法解析的语法（如 `[('2026-08-01', ...)]` 方括号列表）降级到
- * fallbackFormatSql，保证不抛错。
+ * 方言无法解析的语法（如 Doris 分区 `VALUES [ ('2026-08-01'), ...)`、
+ * 方括号列表）降级到 fallbackFormatSql，保证不抛错。
  */
 export function formatSql(sql: string, indentSize = 2): string {
+  const cleaned = cleanBackticks(sql)
   try {
-    return formatDialect(sql, {
+    return formatDialect(cleaned, {
       dialect: mysql,
       keywordCase: 'upper',
       tabWidth: indentSize,
     })
   } catch {
-    return fallbackFormatSql(sql)
+    return fallbackFormatSql(cleaned)
   }
 }
 
+/** 清理反引号标识符内部的首尾空白：` x ` → `x` */
+function cleanBackticks(sql: string): string {
+  return sql.replace(/`[^`\n]*`/g, (m) => {
+    const inner = m.slice(1, -1).trim()
+    return inner ? '`' + inner + '`' : m
+  })
+}
+
 /**
- * 宽松兜底格式化：不做语法解析，仅按 token 重排——关键字大写、
- * 逗号/括号/分号紧贴、保留原换行。输出可用但不保证严格对齐。
+ * 宽松兜底格式化：sql-formatter 无法解析的语法（Doris 分区 `VALUES [ (...)`、
+ * 方括号列表等）走这里。保留输入的换行结构，按括号深度补缩进、
+ * 关键字大写，保证不抛错且缩进正常。
  */
 function fallbackFormatSql(sql: string): string {
   const out: string[] = []
+  let depth = 0 // 当前括号深度（( [）
+  let backtick = false // 是否在反引号标识符内
   let lineStart = true
   for (const t of tokenizeSql(sql)) {
+    if (t === ' ') continue
     if (t === '\n') {
-      out.push('\n')
+      if (out.length && out[out.length - 1] !== '\n') out.push('\n')
       lineStart = true
       continue
     }
-    if (t === ' ') {
-      if (!lineStart && out.length && out[out.length - 1] !== ' ') out.push(' ')
-      continue
+    let disp = t
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(disp)) {
+      const u = disp.toUpperCase()
+      if (SQL_KEYWORDS.has(u)) disp = u
     }
-    const isWord = /^[A-Za-z_][A-Za-z0-9_]*$/.test(t)
-    const disp = isWord && SQL_KEYWORDS.has(t.toUpperCase()) ? t.toUpperCase() : t
+    // 闭合括号：先减深度再输出（决定本行行首缩进）
+    if (disp === ')' || disp === ']') depth = Math.max(0, depth - 1)
+    if (lineStart) {
+      if (depth > 0) out.push(' '.repeat(depth * 2))
+      lineStart = false
+    }
+    // 反引号块状态：开反引号后内部 token 紧贴，闭反引号紧贴后恢复空格
+    const closingBt = disp === '`' && backtick
+    const inBt = backtick
+    if (disp === '`') backtick = !backtick
     const last = out[out.length - 1]
     const noSpace =
-      lineStart ||
-      disp === ',' || disp === ')' || disp === ';' || disp === '.' ||
-      last === '(' || last === '.' || last === ' '
+      inBt || closingBt || // 反引号标识符内部：`x`
+      disp === ',' || disp === ')' || disp === ']' || disp === ';' || disp === '.' ||
+      last === undefined ||
+      last === '(' || last === '[' || last === '.' || last === '\n' || last.endsWith(' ')
     if (!noSpace) out.push(' ')
     out.push(disp)
-    lineStart = false
+    if (disp === '(' || disp === '[') depth++
   }
   return out.join('').trim()
 }
