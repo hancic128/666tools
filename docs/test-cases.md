@@ -111,15 +111,30 @@ await expect(out.locator('span.f-tok.f-bool')).toContainText('true')
 ### J-4 SQL 格式化
 1. Header 第一个 Select 切到 `SQL`。
 2. 输入 `select id,name from users where id=1 order by name;` → 点"格式化"。
-3. 期望：`.format-output` 内关键字大写（含 `SELECT`/`FROM`/`WHERE`/`ORDER`），`SELECT id, name` 单行（短列表不换行），`ORDER BY name;` 分号无前导空格。实际输出：
+3. 期望：`.format-output` 内关键字大写（含 `SELECT`/`FROM`/`WHERE`/`ORDER`），子句各自成行、内容缩进 2 格，分号无前导空格。实际输出：
    ```
-   SELECT id, name
-   FROM users
-   WHERE id = 1
-   ORDER BY name;
+   SELECT
+     id,
+     name
+   FROM
+     users
+   WHERE
+     id = 1
+   ORDER BY
+     name;
    ```
-4. 函数调用内联：输入 `select count(*) from orders group by user_id;` → 输出 `SELECT COUNT(*)`（`COUNT(` 不加空格、括号内联）。
-5. 关键字高亮：`SELECT` 应为 `.f-tok.f-keyword`。
+4. 函数调用内联：输入 `select count(*) from orders group by user_id;` → 输出 `SELECT COUNT(*)`（`COUNT(` 不加空格、括号内联）：
+   ```
+   SELECT
+     COUNT(*)
+   FROM
+     orders
+   GROUP BY
+     user_id;
+   ```
+5. 复合关键字/运算符不断行：输入 `select * from a left join b on a.id=b.id where a.x>=1;` → `LEFT JOIN` 同行、`>=` 不拆分。
+6. 多行 VALUES：输入 `insert into t(a,b) values (1,'x'),(2,'y');` → 每个元组独立一行、逗号后换行。
+7. 关键字高亮：`SELECT` 应为 `.f-tok.f-keyword`。
 
 ### J-5 Python / XML / HTML
 - Python：`x=1 # comment` → 注释 `.f-tok.f-comment` 存在，尾随空格被清理。

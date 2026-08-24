@@ -3,6 +3,7 @@
  * 高亮输出已转义 HTML，类名 f-tok / f-keyword / f-string / f-number /
  * f-bool / f-null / f-key / f-comment / f-builtin / f-decorator / f-tag / f-attr。
  */
+import { formatDialect, mysql } from 'sql-formatter'
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -18,19 +19,15 @@ const SQL_KEYWORDS = new Set([
   'CREATE', 'TABLE', 'ALTER', 'DROP', 'INDEX', 'PRIMARY', 'KEY', 'FOREIGN',
   'REFERENCES', 'NULL', 'IS', 'IN', 'EXISTS', 'BETWEEN', 'LIKE', 'COUNT', 'SUM',
   'AVG', 'MIN', 'MAX', 'BEGIN', 'COMMIT', 'ROLLBACK', 'TRUNCATE', 'DEFAULT', 'UNIQUE',
-])
-
-/** 聚合/内置函数：调用括号内联（COUNT(*)）、参数用逗号+空格分隔 */
-const SQL_FUNC = new Set([
-  'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'COALESCE', 'NULLIF', 'CAST', 'CONCAT',
-  'IFNULL', 'NOW', 'UPPER', 'LOWER', 'TRIM', 'LENGTH', 'SUBSTR', 'REPLACE',
-  'ABS', 'ROUND', 'FLOOR', 'CEIL', 'DATE',
-])
-
-const SQL_BREAK = new Set([
-  'SELECT', 'FROM', 'WHERE', 'JOIN', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'CROSS',
-  'GROUP', 'ORDER', 'HAVING', 'LIMIT', 'UNION', 'INSERT', 'UPDATE', 'DELETE',
-  'SET', 'VALUES', 'WHEN', 'AND', 'OR',
+  'WITH', 'RECURSIVE', 'EXCEPT', 'INTERSECT', 'MERGE', 'RETURNING', 'CONFLICT',
+  'OVER', 'PARTITION', 'WINDOW', 'ROWS', 'RANGE', 'UNBOUNDED', 'PRECEDING',
+  'FOLLOWING', 'CURRENT', 'ROW', 'LATERAL', 'FETCH', 'FIRST', 'NEXT', 'ONLY',
+  'VIEW', 'REPLACE', 'TRIGGER', 'PROCEDURE', 'FUNCTION', 'SEQUENCE', 'SCHEMA',
+  'GRANT', 'REVOKE', 'USING', 'NATURAL', 'IGNORE', 'DUPLICATE',
+  'TINYINT', 'SMALLINT', 'MEDIUMINT', 'BIGINT', 'INT', 'INTEGER', 'DECIMAL',
+  'NUMERIC', 'FLOAT', 'DOUBLE', 'REAL', 'BOOLEAN', 'BIT', 'DATETIME', 'TIMESTAMP',
+  'TIME', 'YEAR', 'CHAR', 'VARCHAR', 'TEXT', 'BLOB', 'ENUM', 'JSON',
+  'AUTO_INCREMENT', 'ENGINE', 'CHARSET', 'COLLATE', 'COMMENT', 'LOCK', 'SHARE',
 ])
 
 function tokenizeSql(sql: string): string[] {
@@ -88,106 +85,16 @@ function tokenizeSql(sql: string): string[] {
   return tokens
 }
 
-/** 单行过长阈值：超过则逗号后换行（普通括号内仍拆行，函数参数内联） */
-const SQL_LINE_MAX = 60
-
+/**
+ * SQL 格式化：基于 sql-formatter（MySQL 方言）。
+ * 关键字统一大写；缩进宽度由 UI 的 indentSize 传入（2 / 4 空格）。
+ */
 export function formatSql(sql: string, indentSize = 2): string {
-  const tokens = tokenizeSql(sql)
-  const out: string[] = []
-  let indent = 0
-  let lineStart = true
-  let lineLen = 0
-  let funcDepth = 0 // 当前函数调用括号深度（COUNT(SUM(x)) 内联参数）
-  let prev: { kind: string; text: string } | null = null
-
-  const nl = () => {
-    out.push('\n' + ' '.repeat(indent * indentSize))
-    lineStart = true
-    lineLen = 0
-  }
-  const pushRaw = (s: string) => {
-    out.push(s)
-    lineStart = false
-    lineLen += s.length
-  }
-
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i]
-    if (t === ' ' || t === '\n') continue
-    const isWord = /^[A-Za-z_][A-Za-z0-9_]*$/.test(t)
-    const upper = isWord ? t.toUpperCase() : ''
-    const isKeyword = isWord && SQL_KEYWORDS.has(upper)
-
-    // 前瞻：下一个非空白 token 是否为 (
-    let k = i + 1
-    while (k < tokens.length && (tokens[k] === ' ' || tokens[k] === '\n')) k++
-    const parenFollows = tokens[k] === '('
-    const isFunc = isWord && parenFollows && SQL_FUNC.has(upper)
-
-    // 函数调用（COUNT(SUM(x))）：紧贴括号，不触发关键字断行
-    if (isFunc) {
-      if (!lineStart) pushRaw(' ')
-      pushRaw(upper)
-      prev = { kind: 'funcname', text: upper }
-      continue
-    }
-
-    if (isKeyword && SQL_BREAK.has(upper)) {
-      if (upper === 'AND' || upper === 'OR') {
-        if (!lineStart) nl()
-      } else {
-        nl()
-      }
-      pushRaw(upper)
-      prev = { kind: 'kw', text: upper }
-      continue
-    }
-
-    if (t === '(') {
-      if (!lineStart && !(prev && prev.kind === 'funcname')) pushRaw(' ')
-      pushRaw('(')
-      // prev 为 funcname 说明这是函数调用括号（COUNT(*)、SUBSTR(a,b)）
-      if (prev && prev.kind === 'funcname') funcDepth++
-      prev = { kind: 'lp', text: '(' }
-      continue
-    }
-    if (t === ')') {
-      pushRaw(')')
-      if (funcDepth > 0) funcDepth--
-      prev = { kind: 'rp', text: ')' }
-      continue
-    }
-    if (t === ',') {
-      pushRaw(',')
-      // 函数参数内联；普通括号内行超长才换行
-      if (funcDepth === 0 && lineLen > SQL_LINE_MAX) nl()
-      prev = { kind: 'comma', text: ',' }
-      continue
-    }
-    if (t === ';') {
-      pushRaw(';')
-      prev = { kind: 'semi', text: ';' }
-      continue
-    }
-    if (t === '.') {
-      pushRaw('.')
-      prev = { kind: 'dot', text: '.' }
-      continue
-    }
-
-    if (!lineStart) {
-      const noSpace =
-        (prev && prev.kind === 'lp') || // ( 后紧贴
-        (prev && prev.kind === 'dot') || // . 两侧
-        t === '.' ||
-        (prev && prev.kind === 'funcname') // 函数名后紧贴 (
-      if (!noSpace) pushRaw(' ')
-    }
-    const disp = isKeyword ? upper : t
-    pushRaw(disp)
-    prev = { kind: isKeyword ? 'kw' : 'word', text: disp }
-  }
-  return out.join('').trim()
+  return formatDialect(sql, {
+    dialect: mysql,
+    keywordCase: 'upper',
+    tabWidth: indentSize,
+  })
 }
 
 export function highlightSql(code: string): string {

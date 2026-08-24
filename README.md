@@ -50,7 +50,7 @@
 | 前端 | Vue 3（Composition API）、Vue Router 4、TypeScript（strict） |
 | 构建 | Vite 8、`vue-tsc` 类型检查 |
 | 桌面 | Tauri 2（仅 shell 插件） |
-| 运行时依赖 | `mermaid`、`qrcode` |
+| 运行时依赖 | `mermaid`、`qrcode`、`sql-formatter` |
 
 ## 快速开始
 

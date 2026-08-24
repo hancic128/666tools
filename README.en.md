@@ -50,7 +50,7 @@
 | Frontend | Vue 3 (Composition API), Vue Router 4, TypeScript (strict) |
 | Build | Vite 8, `vue-tsc` type-checking |
 | Desktop | Tauri 2 (shell plugin only) |
-| Runtime libs | `mermaid`, `qrcode` |
+| Runtime libs | `mermaid`, `qrcode`, `sql-formatter` |
 
 ## Getting Started
 
