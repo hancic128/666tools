@@ -70,13 +70,15 @@ function tokenizeSql(sql: string): string[] {
       continue
     }
     if (/\s/.test(ch)) {
-      let j = i
-      let hasNl = false
-      while (j < n && /\s/.test(sql[j])) {
-        if (sql[j] === '\n') hasNl = true
-        j++
+      if (ch === '\n') {
+        tokens.push('\n')
+        i++
+        continue
       }
-      tokens.push(hasNl ? '\n' : sql.slice(i, j))
+      // 纯空格/制表符：保留原始宽度（高亮时缩进不被压缩）
+      let j = i
+      while (j < n && /\s/.test(sql[j]) && sql[j] !== '\n') j++
+      tokens.push(sql.slice(i, j))
       i = j
       continue
     }

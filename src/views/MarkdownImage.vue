@@ -2,10 +2,11 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import ViewHeader from '@/components/ViewHeader.vue'
 import Button from '@/components/Button.vue'
+import Select from '@/components/Select.vue'
 import ThemePicker from '@/components/ThemePicker.vue'
 import MarkdownIt from 'markdown-it'
 import { toBlob, toCanvas, toPng } from 'html-to-image'
-import { MD_CANVAS_W, MD_PAGE_H, MD_THEMES } from '@/utils/mdThemes'
+import { MD_CANVAS_W, MD_PAGE_PRESETS, MD_THEMES } from '@/utils/mdThemes'
 
 /* ---------- Markdown 解析 ---------- */
 
@@ -54,6 +55,16 @@ const input = ref(EXAMPLE)
 const themeId = ref('warm')
 const multiPage = ref(false)
 
+/* 多页每页高度：预设（手机比例）或自定义 */
+const pagePresetId = ref('16-9')
+const customPageH = ref<number | null>(null)
+const PAGE_OPTIONS = [...MD_PAGE_PRESETS.map((p) => ({ value: p.id, label: `${p.name} · ${p.h}px` })), { value: 'custom', label: '自定义…' }]
+const pageH = computed(() => customPageH.value ?? (MD_PAGE_PRESETS.find((p) => p.id === pagePresetId.value)?.h ?? 1333))
+function onPagePreset(v: string) {
+  pagePresetId.value = v
+  if (v !== 'custom') customPageH.value = null
+}
+
 const theme = computed(() => MD_THEMES.find((t) => t.id === themeId.value) ?? MD_THEMES[0])
 
 const html = computed(() => md.render(input.value))
@@ -93,9 +104,15 @@ function loadExample() {
 
 /* ---------- 导出 ---------- */
 
-const EXPORT_OPTS = { pixelRatio: 2, cacheBust: true }
+/** 图片加载失败（跨域/防盗链/404）时跳过，不中断导出 */
+const EXPORT_OPTS = { pixelRatio: 2, onImageErrorHandler: () => {} }
 const copied = ref(false)
 let copyTimer: number | undefined
+
+function errMsg(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message
+  return '可能是 Markdown 中的网络图片加载失败（跨域/防盗链），请换用本地图片或删除后重试'
+}
 
 function downloadPng(dataUrl: string, name: string) {
   const a = document.createElement('a')
@@ -115,19 +132,19 @@ async function exportPng() {
     }
     // 多页：整图按页高切分，每页一张
     const full = await toCanvas(node, EXPORT_OPTS)
-    const pageH = MD_PAGE_H * EXPORT_OPTS.pixelRatio
-    const pages = Math.max(1, Math.ceil(full.height / pageH))
+    const pageHpx = pageH.value * EXPORT_OPTS.pixelRatio
+    const pages = Math.max(1, Math.ceil(full.height / pageHpx))
     for (let i = 0; i < pages; i++) {
       const page = document.createElement('canvas')
       page.width = full.width
-      page.height = Math.min(pageH, full.height - i * pageH)
+      page.height = Math.min(pageHpx, full.height - i * pageHpx)
       const ctx = page.getContext('2d')
       if (!ctx) return
-      ctx.drawImage(full, 0, -i * pageH)
+      ctx.drawImage(full, 0, -i * pageHpx)
       downloadPng(page.toDataURL('image/png'), pages > 1 ? `md-image-${i + 1}-${pages}.png` : `md-image-${Date.now()}.png`)
     }
   } catch (e) {
-    alert('导出失败：' + String((e as Error).message || e))
+    alert('导出失败：' + errMsg(e))
   }
 }
 
@@ -142,7 +159,7 @@ async function copyImage() {
     window.clearTimeout(copyTimer)
     copyTimer = window.setTimeout(() => (copied.value = false), 1500)
   } catch (e) {
-    alert('复制失败：' + String((e as Error).message || e))
+    alert('复制失败：' + errMsg(e))
   }
 }
 </script>
@@ -155,11 +172,24 @@ async function copyImage() {
         variant="ghost"
         size="sm"
         :class="{ 'btn-toggle-active': multiPage }"
-        :title="multiPage ? '关闭分页：导出单张长图' : '开启分页：按每页 ' + MD_PAGE_H + 'px 切分多张'"
+        :title="multiPage ? '关闭分页：导出单张长图' : '开启分页：按每页高度切分多张'"
         @click="multiPage = !multiPage"
       >
         多页
       </Button>
+      <template v-if="multiPage">
+        <Select :model-value="pagePresetId" :options="PAGE_OPTIONS" width="132px" @update:model-value="onPagePreset" />
+        <input
+          v-if="pagePresetId === 'custom'"
+          v-model.number="customPageH"
+          class="page-h-input"
+          type="number"
+          min="500"
+          max="5000"
+          placeholder="高度px"
+          title="自定义每页高度（px）"
+        />
+      </template>
       <Button variant="ghost" size="sm" @click="loadExample">示例</Button>
       <Button variant="secondary" size="md" @click="copyImage">{{ copied ? '已复制!' : '复制图片' }}</Button>
       <Button variant="primary" size="md" @click="exportPng">导出 PNG</Button>
@@ -174,7 +204,7 @@ async function copyImage() {
       </div>
       <div class="panel">
         <div class="panel-header">
-          <span class="panel-title">预览 · {{ theme.name }}{{ multiPage ? ` · 多页（每页 ${MD_PAGE_H}px）` : '' }}</span>
+          <span class="panel-title">预览 · {{ theme.name }}{{ multiPage ? ` · 多页（每页 ${pageH}px）` : '' }}</span>
         </div>
         <div class="panel-body">
           <div class="md-stage" ref="stageRef" :style="{ minHeight: stageH + 'px' }">
@@ -216,6 +246,22 @@ async function copyImage() {
   border-color: var(--brand-primary);
 }
 
+.page-h-input {
+  width: 88px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  outline: none;
+}
+
+.page-h-input:focus {
+  border-color: var(--brand-primary);
+}
+
 .md-stage {
   display: flex;
   justify-content: center;
@@ -238,7 +284,7 @@ async function copyImage() {
 
 /* Markdown 排版（主题变量来自 .md-canvas 内联样式） */
 .md-body {
-  padding: 72px 60px;
+  padding: 96px 72px;
   font-family: var(--md-font);
   color: var(--md-text);
   font-size: 26px;
