@@ -68,7 +68,26 @@ function onPagePreset(v: string) {
 /** 多页预览：页卡片间距（px，未缩放坐标） */
 const PAGE_GAP = 24
 
-/** 多页预览：分页数量、当前页与跳转 */
+const theme = computed(() => MD_THEMES.find((t) => t.id === themeId.value) ?? MD_THEMES[0])
+
+const html = computed(() => md.render(input.value))
+
+const canvasStyle = computed(() => ({
+  ...theme.value.vars,
+  width: MD_CANVAS_W + 'px',
+  background: 'var(--md-bg)',
+}))
+
+/* ---------- 预览缩放（宽度自适应面板，不放大） ---------- */
+
+const stageRef = ref<HTMLElement | null>(null)
+const canvasRef = ref<HTMLElement | null>(null)
+const stageW = ref(0)
+const canvasH = ref(1000)
+
+const scale = computed(() => (stageW.value ? Math.min(stageW.value / MD_CANVAS_W, 1) : 1))
+
+/* 分页数量、当前页与跳转（canvasH 已声明，getter 不引用后声明变量） */
 const totalPages = computed(() => Math.max(1, Math.ceil(canvasH.value / pageH.value)))
 const currentPage = ref(1)
 const pageInput = ref(1)
@@ -91,24 +110,6 @@ watch(totalPages, (t) => {
   }
 })
 
-const theme = computed(() => MD_THEMES.find((t) => t.id === themeId.value) ?? MD_THEMES[0])
-
-const html = computed(() => md.render(input.value))
-
-const canvasStyle = computed(() => ({
-  ...theme.value.vars,
-  width: MD_CANVAS_W + 'px',
-  background: 'var(--md-bg)',
-}))
-
-/* ---------- 预览缩放（宽度自适应面板，不放大） ---------- */
-
-const stageRef = ref<HTMLElement | null>(null)
-const canvasRef = ref<HTMLElement | null>(null)
-const stageW = ref(0)
-const canvasH = ref(1000)
-
-const scale = computed(() => (stageW.value ? Math.min(stageW.value / MD_CANVAS_W, 1) : 1))
 /** 预览区高度：单页=整图高；多页=页数×页高+页间距（均按缩放比例） */
 const stageH = computed(() => {
   const base = multiPage.value ? totalPages.value * pageH.value + (totalPages.value - 1) * PAGE_GAP : canvasH.value
