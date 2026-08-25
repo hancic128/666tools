@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ViewHeader from '@/components/ViewHeader.vue'
 import Button from '@/components/Button.vue'
 import Select from '@/components/Select.vue'
@@ -56,14 +56,40 @@ const themeId = ref('warm')
 const multiPage = ref(false)
 
 /* 多页每页高度：预设（手机比例）或自定义 */
-const pagePresetId = ref('16-9')
+const pagePresetId = ref('phone')
 const customPageH = ref<number | null>(null)
 const PAGE_OPTIONS = [...MD_PAGE_PRESETS.map((p) => ({ value: p.id, label: `${p.name} · ${p.h}px` })), { value: 'custom', label: '自定义…' }]
-const pageH = computed(() => customPageH.value ?? (MD_PAGE_PRESETS.find((p) => p.id === pagePresetId.value)?.h ?? 1333))
+const pageH = computed(() => customPageH.value ?? (MD_PAGE_PRESETS.find((p) => p.id === pagePresetId.value)?.h ?? 1334))
 function onPagePreset(v: string) {
   pagePresetId.value = v
   if (v !== 'custom') customPageH.value = null
 }
+
+/** 多页预览：页卡片间距（px，未缩放坐标） */
+const PAGE_GAP = 24
+
+/** 多页预览：分页数量、当前页与跳转 */
+const totalPages = computed(() => Math.max(1, Math.ceil(canvasH.value / pageH.value)))
+const currentPage = ref(1)
+const pageInput = ref(1)
+
+function goPage(n: number) {
+  const total = totalPages.value
+  if (!Number.isFinite(n)) return
+  const c = Math.min(total, Math.max(1, Math.round(n)))
+  currentPage.value = c
+  pageInput.value = c
+  // 滚动预览区到对应页
+  stageRef.value?.querySelector(`[data-page="${c}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// 内容/页高变化导致总页数减少时，收敛当前页
+watch(totalPages, (t) => {
+  if (currentPage.value > t) {
+    currentPage.value = t
+    pageInput.value = t
+  }
+})
 
 const theme = computed(() => MD_THEMES.find((t) => t.id === themeId.value) ?? MD_THEMES[0])
 
@@ -83,10 +109,15 @@ const stageW = ref(0)
 const canvasH = ref(1000)
 
 const scale = computed(() => (stageW.value ? Math.min(stageW.value / MD_CANVAS_W, 1) : 1))
-const stageH = computed(() => canvasH.value * scale.value)
+/** 预览区高度：单页=整图高；多页=页数×页高+页间距（均按缩放比例） */
+const stageH = computed(() => {
+  const base = multiPage.value ? totalPages.value * pageH.value + (totalPages.value - 1) * PAGE_GAP : canvasH.value
+  return base * scale.value
+})
 
 let ro: ResizeObserver | null = null
-onMounted(() => {
+function observeCanvas() {
+  ro?.disconnect()
   ro = new ResizeObserver(() => {
     if (stageRef.value) stageW.value = stageRef.value.clientWidth
     if (canvasRef.value) canvasH.value = canvasRef.value.offsetHeight
@@ -95,7 +126,10 @@ onMounted(() => {
   if (canvasRef.value) ro.observe(canvasRef.value)
   if (stageRef.value) stageW.value = stageRef.value.clientWidth
   if (canvasRef.value) canvasH.value = canvasRef.value.offsetHeight
-})
+}
+// canvasRef 会在单页/多页视图切换时换成不同元素，需重新绑定观察
+watch(canvasRef, () => observeCanvas())
+onMounted(observeCanvas)
 onBeforeUnmount(() => ro?.disconnect())
 
 function loadExample() {
@@ -105,7 +139,10 @@ function loadExample() {
 /* ---------- 导出 ---------- */
 
 /** 图片加载失败（跨域/防盗链/404）时跳过，不中断导出 */
-const EXPORT_OPTS = { pixelRatio: 2, onImageErrorHandler: () => {} }
+const EXPORT_OPTS = {
+  pixelRatio: 2,
+  onImageErrorHandler: () => {},
+}
 const copied = ref(false)
 let copyTimer: number | undefined
 
@@ -178,7 +215,7 @@ async function copyImage() {
         多页
       </Button>
       <template v-if="multiPage">
-        <Select :model-value="pagePresetId" :options="PAGE_OPTIONS" width="132px" @update:model-value="onPagePreset" />
+        <Select :model-value="pagePresetId" :options="PAGE_OPTIONS" width="168px" @update:model-value="onPagePreset" />
         <input
           v-if="pagePresetId === 'custom'"
           v-model.number="customPageH"
@@ -204,7 +241,13 @@ async function copyImage() {
       </div>
       <div class="panel">
         <div class="panel-header">
-          <span class="panel-title">预览 · {{ theme.name }}{{ multiPage ? ` · 多页（每页 ${pageH}px）` : '' }}</span>
+          <span class="panel-title">预览 · {{ theme.name }}{{ multiPage ? ` · ${totalPages} 页（每页 ${pageH}px）` : '' }}</span>
+          <div v-if="multiPage" class="page-nav">
+            <button class="nav-btn" :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">‹</button>
+            <input v-model.number="pageInput" class="nav-input" type="number" min="1" :max="totalPages" @change="goPage(pageInput)" />
+            <span class="nav-total">/ {{ totalPages }}</span>
+            <button class="nav-btn" :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">›</button>
+          </div>
         </div>
         <div class="panel-body">
           <div class="md-stage" ref="stageRef" :style="{ minHeight: stageH + 'px' }">
@@ -212,6 +255,35 @@ async function copyImage() {
               class="md-scale"
               :style="{ width: MD_CANVAS_W + 'px', transform: `scale(${scale})`, transformOrigin: 'top left' }"
             >
+              <!-- 单页：直接预览导出画布 -->
+              <div v-if="!multiPage" ref="canvasRef" class="md-canvas" :style="canvasStyle">
+                <div class="md-body" v-html="html"></div>
+              </div>
+              <!-- 多页：每页一张卡片，页间留间距 -->
+              <div v-else class="md-pages">
+                <div
+                  v-for="pg in totalPages"
+                  :key="pg"
+                  class="md-page-card"
+                  :data-page="pg"
+                  :style="{
+                    ...theme.vars,
+                    width: MD_CANVAS_W + 'px',
+                    height: pageH + 'px',
+                    background: 'var(--md-bg)',
+                  }"
+                >
+                  <div
+                    class="md-page-inner"
+                    :style="{ width: MD_CANVAS_W + 'px', transform: `translateY(${-(pg - 1) * pageH}px)` }"
+                  >
+                    <div class="md-body" v-html="html"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 导出底图：多页时移出可视区（保留布局供导出捕获） -->
+            <div v-if="multiPage" class="md-export-layer" aria-hidden="true">
               <div ref="canvasRef" class="md-canvas" :style="canvasStyle">
                 <div class="md-body" v-html="html"></div>
               </div>
@@ -263,6 +335,7 @@ async function copyImage() {
 }
 
 .md-stage {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -277,9 +350,94 @@ async function copyImage() {
 }
 
 .md-canvas {
+  position: relative;
   box-sizing: border-box;
   overflow: hidden;
   border-radius: 12px;
+}
+
+/* 多页预览：页卡片列表，页间留间距 */
+.md-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.md-page-card {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+}
+
+.md-page-inner {
+  box-sizing: border-box;
+}
+
+/* 导出底图：保留布局但移出可视区，供 html-to-image 捕获 */
+.md-export-layer {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+
+/* 多页页面跳转导航 */
+.page-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nav-input {
+  width: 44px;
+  height: 24px;
+  padding: 0 4px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  outline: none;
+}
+
+.nav-input:focus {
+  border-color: var(--brand-primary);
+}
+
+.nav-total {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* Markdown 排版（主题变量来自 .md-canvas 内联样式） */
