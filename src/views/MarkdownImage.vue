@@ -280,6 +280,7 @@ async function copyImage() {
                   >
                     <div class="md-body" v-html="html"></div>
                   </div>
+                  <div class="md-page-num">{{ pg }}/{{ totalPages }}</div>
                 </div>
               </div>
             </div>
@@ -287,6 +288,14 @@ async function copyImage() {
             <div v-if="multiPage" class="md-export-layer" aria-hidden="true">
               <div ref="canvasRef" class="md-canvas" :style="canvasStyle">
                 <div class="md-body" v-html="html"></div>
+                <div
+                  v-for="pg in totalPages"
+                  :key="'num-' + pg"
+                  class="md-page-num"
+                  :style="{ top: Math.min(pg * pageH, canvasH) - 90 + 'px' }"
+                >
+                  {{ pg }}/{{ totalPages }}
+                </div>
               </div>
             </div>
           </div>
@@ -372,6 +381,24 @@ async function copyImage() {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
 }
 
+/* 页码标记：预览卡片底部居中；导出层内每页页尾留白区 */
+.md-page-num {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 26px;
+  color: var(--md-muted);
+  opacity: 0.75;
+  font-family: var(--md-font);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.md-page-card .md-page-num {
+  bottom: 90px;
+}
+
 .md-page-inner {
   box-sizing: border-box;
 }
@@ -443,7 +470,7 @@ async function copyImage() {
 
 /* Markdown 排版（主题变量来自 .md-canvas 内联样式） */
 .md-body {
-  padding: 96px 72px;
+  padding: 160px 96px;
   font-family: var(--md-font);
   color: var(--md-text);
   font-size: 26px;
