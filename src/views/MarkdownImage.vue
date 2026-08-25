@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ViewHeader from '@/components/ViewHeader.vue'
 import Button from '@/components/Button.vue'
 import Select from '@/components/Select.vue'
 import ThemePicker from '@/components/ThemePicker.vue'
 import MarkdownIt from 'markdown-it'
-import { toBlob, toCanvas, toPng } from 'html-to-image'
+import { toBlob, toPng } from 'html-to-image'
 import { MD_CANVAS_W, MD_PAGE_PRESETS, MD_THEMES } from '@/utils/mdThemes'
 
 /* ---------- Markdown 解析 ---------- */
@@ -87,8 +87,74 @@ const canvasH = ref(1000)
 
 const scale = computed(() => (stageW.value ? Math.min(stageW.value / MD_CANVAS_W, 1) : 1))
 
-/* 分页数量、当前页与跳转（canvasH 已声明，getter 不引用后声明变量） */
-const totalPages = computed(() => Math.max(1, Math.ceil(canvasH.value / pageH.value)))
+/* 分页：DOM 级智能分页——块不跨页、每页上下留白、超页块按行对齐切分 */
+const PAD_TOP = 160
+const PAD_BOTTOM = 160
+
+interface PageData {
+  html: string
+  /** 超页块切片时内容垂直偏移（行对齐，避免切到行中间） */
+  splitOffset?: number
+}
+
+const pagesData = ref<PageData[]>([])
+
+function lineHeightOf(el: HTMLElement): number {
+  const lh = parseFloat(getComputedStyle(el).lineHeight)
+  return Number.isFinite(lh) && lh > 0 ? lh : 48
+}
+
+function marginBottomOf(el: HTMLElement): number {
+  const mb = parseFloat(getComputedStyle(el).marginBottom)
+  return Number.isFinite(mb) ? mb : 0
+}
+
+function computePages() {
+  const canvas = canvasRef.value
+  if (!canvas || !multiPage.value) {
+    pagesData.value = []
+    return
+  }
+  const body = canvas.querySelector('.md-body') as HTMLElement | null
+  if (!body) return
+  const usable = pageH.value - PAD_TOP - PAD_BOTTOM
+  if (usable <= 0) return
+  const blocks = Array.from(body.children) as HTMLElement[]
+  const pages: PageData[] = []
+  let cur: HTMLElement[] = []
+  let used = 0
+  for (const b of blocks) {
+    const h = b.offsetHeight + marginBottomOf(b)
+    if (h > usable) {
+      // 超页块：单独占页并按行对齐切片（不切行）
+      if (cur.length) {
+        pages.push({ html: cur.map((x) => x.outerHTML).join('') })
+        cur = []
+        used = 0
+      }
+      const lh = lineHeightOf(b)
+      const perPage = Math.max(1, Math.floor(usable / lh))
+      const total = Math.max(1, Math.ceil(b.offsetHeight / lh))
+      const segs = Math.ceil(total / perPage)
+      for (let s = 0; s < segs; s++) {
+        pages.push({ html: b.outerHTML, splitOffset: s * perPage * lh })
+      }
+      continue
+    }
+    if (used + h > usable) {
+      pages.push({ html: cur.map((x) => x.outerHTML).join('') })
+      cur = [b]
+      used = h
+    } else {
+      cur.push(b)
+      used += h
+    }
+  }
+  if (cur.length) pages.push({ html: cur.map((x) => x.outerHTML).join('') })
+  pagesData.value = pages.length ? pages : [{ html: body.innerHTML }]
+}
+
+const totalPages = computed(() => (multiPage.value ? pagesData.value.length : 1))
 const currentPage = ref(1)
 const pageInput = ref(1)
 
@@ -108,6 +174,12 @@ watch(totalPages, (t) => {
     currentPage.value = t
     pageInput.value = t
   }
+})
+
+// 内容高度/页高/分页开关变化时重新分页
+watch([multiPage, pageH, canvasH], () => {
+  if (!multiPage.value) return
+  void nextTick().then(computePages)
 })
 
 /** 预览区高度：单页=整图高；多页=页数×页高+页间距（均按缩放比例） */
@@ -160,26 +232,24 @@ function downloadPng(dataUrl: string, name: string) {
 }
 
 async function exportPng() {
-  const node = canvasRef.value
-  if (!node) return
-  try {
-    if (!multiPage.value) {
+  if (!multiPage.value) {
+    const node = canvasRef.value
+    if (!node) return
+    try {
       // 单页：整图一张
       downloadPng(await toPng(node, EXPORT_OPTS), `md-image-${Date.now()}.png`)
-      return
+    } catch (e) {
+      alert('导出失败：' + errMsg(e))
     }
-    // 多页：整图按页高切分，每页一张
-    const full = await toCanvas(node, EXPORT_OPTS)
-    const pageHpx = pageH.value * EXPORT_OPTS.pixelRatio
-    const pages = Math.max(1, Math.ceil(full.height / pageHpx))
-    for (let i = 0; i < pages; i++) {
-      const page = document.createElement('canvas')
-      page.width = full.width
-      page.height = Math.min(pageHpx, full.height - i * pageHpx)
-      const ctx = page.getContext('2d')
-      if (!ctx) return
-      ctx.drawImage(full, 0, -i * pageHpx)
-      downloadPng(page.toDataURL('image/png'), pages > 1 ? `md-image-${i + 1}-${pages}.png` : `md-image-${Date.now()}.png`)
+    return
+  }
+  // 多页：逐页导出 DOM 分页卡片（每页独立图片，含页码）
+  const cards = Array.from(stageRef.value?.querySelectorAll('.md-page-card') ?? []) as HTMLElement[]
+  if (!cards.length) return
+  try {
+    for (let i = 0; i < cards.length; i++) {
+      const dataUrl = await toPng(cards[i], EXPORT_OPTS)
+      downloadPng(dataUrl, cards.length > 1 ? `md-image-${i + 1}-${cards.length}.png` : `md-image-${Date.now()}.png`)
     }
   } catch (e) {
     alert('导出失败：' + errMsg(e))
@@ -260,13 +330,13 @@ async function copyImage() {
               <div v-if="!multiPage" ref="canvasRef" class="md-canvas" :style="canvasStyle">
                 <div class="md-body" v-html="html"></div>
               </div>
-              <!-- 多页：每页一张卡片，页间留间距 -->
+              <!-- 多页：每页一张卡片（DOM 智能分页，页间留间距） -->
               <div v-else class="md-pages">
                 <div
-                  v-for="pg in totalPages"
-                  :key="pg"
+                  v-for="(pg, pgIdx) in pagesData"
+                  :key="pgIdx"
                   class="md-page-card"
-                  :data-page="pg"
+                  :data-page="pgIdx + 1"
                   :style="{
                     ...theme.vars,
                     width: MD_CANVAS_W + 'px',
@@ -274,28 +344,23 @@ async function copyImage() {
                     background: 'var(--md-bg)',
                   }"
                 >
-                  <div
-                    class="md-page-inner"
-                    :style="{ width: MD_CANVAS_W + 'px', transform: `translateY(${-(pg - 1) * pageH}px)` }"
-                  >
-                    <div class="md-body" v-html="html"></div>
+                  <div class="md-page-content">
+                    <div
+                      v-if="pg.splitOffset !== undefined"
+                      class="md-split-inner"
+                      :style="{ transform: `translateY(${-pg.splitOffset}px)` }"
+                      v-html="pg.html"
+                    ></div>
+                    <div v-else v-html="pg.html"></div>
                   </div>
-                  <div class="md-page-num">{{ pg }}/{{ totalPages }}</div>
+                  <div class="md-page-num">{{ pgIdx + 1 }}/{{ pagesData.length }}</div>
                 </div>
               </div>
             </div>
-            <!-- 导出底图：多页时移出可视区（保留布局供导出捕获） -->
+            <!-- 测量底图：多页时移出可视区（保留布局，供分页测量与单页导出） -->
             <div v-if="multiPage" class="md-export-layer" aria-hidden="true">
               <div ref="canvasRef" class="md-canvas" :style="canvasStyle">
                 <div class="md-body" v-html="html"></div>
-                <div
-                  v-for="pg in totalPages"
-                  :key="'num-' + pg"
-                  class="md-page-num"
-                  :style="{ top: Math.min(pg * pageH, canvasH) - 90 + 'px' }"
-                >
-                  {{ pg }}/{{ totalPages }}
-                </div>
               </div>
             </div>
           </div>
@@ -304,6 +369,178 @@ async function copyImage() {
     </div>
   </div>
 </template>
+
+<style>
+/* Markdown 排版：.md-body（单页/测量画布）与 .md-page-content（分页卡片）共用 */
+.md-body,
+.md-page-content {
+  font-family: var(--md-font);
+  color: var(--md-text);
+  font-size: 26px;
+  line-height: 1.8;
+  word-break: break-word;
+}
+
+.md-body {
+  padding: 160px 96px;
+}
+
+.md-page-content {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 160px 96px;
+}
+
+.md-body h1,
+.md-page-content h1 {
+  font-size: 44px;
+  line-height: 1.4;
+  font-weight: 800;
+  color: var(--md-heading);
+  margin: 0 0 28px;
+  padding-bottom: 20px;
+  border-bottom: 4px solid var(--md-accent);
+}
+
+.md-body h2,
+.md-page-content h2 {
+  font-size: 34px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--md-heading);
+  margin: 44px 0 16px;
+  padding-left: 18px;
+  border-left: 6px solid var(--md-accent);
+}
+
+.md-body h3,
+.md-page-content h3 {
+  font-size: 29px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--md-heading);
+  margin: 32px 0 12px;
+}
+
+.md-body p,
+.md-page-content p {
+  margin: 0 0 20px;
+}
+
+.md-body strong,
+.md-page-content strong {
+  color: var(--md-heading);
+  font-weight: 700;
+}
+
+.md-body a,
+.md-page-content a {
+  color: var(--md-link);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.md-body ul,
+.md-page-content ul,
+.md-body ol,
+.md-page-content ol {
+  margin: 0 0 20px;
+  padding-left: 36px;
+}
+
+.md-body li,
+.md-page-content li {
+  margin-bottom: 10px;
+}
+
+.md-body li::marker,
+.md-page-content li::marker {
+  color: var(--md-accent);
+}
+
+.md-body code,
+.md-page-content code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--md-code-bg);
+  color: var(--md-code-text);
+  padding: 3px 10px;
+  border-radius: 8px;
+}
+
+.md-body pre,
+.md-page-content pre {
+  background: var(--md-code-bg);
+  color: var(--md-code-text);
+  padding: 20px 24px;
+  border-radius: 12px;
+  overflow-x: auto;
+  margin: 0 0 20px;
+  font-size: 22px;
+  line-height: 1.6;
+}
+
+.md-body pre code,
+.md-page-content pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.md-body blockquote,
+.md-page-content blockquote {
+  margin: 0 0 24px;
+  padding: 16px 24px;
+  background: var(--md-quote-bg);
+  border-left: 6px solid var(--md-quote-border);
+  border-radius: 0 12px 12px 0;
+  color: var(--md-text);
+}
+
+.md-body blockquote p,
+.md-page-content blockquote p {
+  margin: 0;
+}
+
+.md-body hr,
+.md-page-content hr {
+  border: none;
+  border-top: 2px solid var(--md-hr);
+  margin: 36px 0;
+}
+
+.md-body table,
+.md-page-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 20px;
+  font-size: 24px;
+}
+
+.md-body th,
+.md-page-content th,
+.md-body td,
+.md-page-content td {
+  border: 1px solid var(--md-table-border);
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.md-body th,
+.md-page-content th {
+  background: var(--md-th-bg);
+  font-weight: 600;
+  color: var(--md-heading);
+}
+
+.md-body img,
+.md-page-content img {
+  max-width: 100%;
+  border-radius: 12px;
+  display: block;
+  margin: 8px 0 20px;
+}
+</style>
 
 <style scoped>
 .md-input {
@@ -399,6 +636,11 @@ async function copyImage() {
   bottom: 90px;
 }
 
+/* 超页块切片容器：按行对齐偏移，配合卡片 overflow hidden 显示片段 */
+.md-split-inner {
+  box-sizing: border-box;
+}
+
 .md-page-inner {
   box-sizing: border-box;
 }
@@ -468,142 +710,5 @@ async function copyImage() {
   white-space: nowrap;
 }
 
-/* Markdown 排版（主题变量来自 .md-canvas 内联样式） */
-.md-body {
-  padding: 160px 96px;
-  font-family: var(--md-font);
-  color: var(--md-text);
-  font-size: 26px;
-  line-height: 1.8;
-  word-break: break-word;
-}
-
-.md-body :deep(h1) {
-  font-size: 44px;
-  line-height: 1.4;
-  font-weight: 800;
-  color: var(--md-heading);
-  margin: 0 0 28px;
-  padding-bottom: 20px;
-  border-bottom: 4px solid var(--md-accent);
-}
-
-.md-body :deep(h2) {
-  font-size: 34px;
-  line-height: 1.4;
-  font-weight: 700;
-  color: var(--md-heading);
-  margin: 44px 0 16px;
-  padding-left: 18px;
-  border-left: 6px solid var(--md-accent);
-}
-
-.md-body :deep(h3) {
-  font-size: 29px;
-  line-height: 1.4;
-  font-weight: 600;
-  color: var(--md-heading);
-  margin: 32px 0 12px;
-}
-
-.md-body :deep(p) {
-  margin: 0 0 20px;
-}
-
-.md-body :deep(strong) {
-  color: var(--md-heading);
-  font-weight: 700;
-}
-
-.md-body :deep(a) {
-  color: var(--md-link);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.md-body :deep(ul),
-.md-body :deep(ol) {
-  margin: 0 0 20px;
-  padding-left: 36px;
-}
-
-.md-body :deep(li) {
-  margin-bottom: 10px;
-}
-
-.md-body :deep(li::marker) {
-  color: var(--md-accent);
-}
-
-.md-body :deep(code) {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  background: var(--md-code-bg);
-  color: var(--md-code-text);
-  padding: 3px 10px;
-  border-radius: 8px;
-}
-
-.md-body :deep(pre) {
-  background: var(--md-code-bg);
-  color: var(--md-code-text);
-  padding: 20px 24px;
-  border-radius: 12px;
-  overflow-x: auto;
-  margin: 0 0 20px;
-  font-size: 22px;
-  line-height: 1.6;
-}
-
-.md-body :deep(pre code) {
-  background: none;
-  padding: 0;
-  font-size: inherit;
-}
-
-.md-body :deep(blockquote) {
-  margin: 0 0 24px;
-  padding: 16px 24px;
-  background: var(--md-quote-bg);
-  border-left: 6px solid var(--md-quote-border);
-  border-radius: 0 12px 12px 0;
-  color: var(--md-text);
-}
-
-.md-body :deep(blockquote p) {
-  margin: 0;
-}
-
-.md-body :deep(hr) {
-  border: none;
-  border-top: 2px solid var(--md-hr);
-  margin: 36px 0;
-}
-
-.md-body :deep(table) {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 0 0 20px;
-  font-size: 24px;
-}
-
-.md-body :deep(th),
-.md-body :deep(td) {
-  border: 1px solid var(--md-table-border);
-  padding: 10px 14px;
-  text-align: left;
-}
-
-.md-body :deep(th) {
-  background: var(--md-th-bg);
-  font-weight: 600;
-  color: var(--md-heading);
-}
-
-.md-body :deep(img) {
-  max-width: 100%;
-  border-radius: 12px;
-  display: block;
-  margin: 8px 0 20px;
-}
+/* Markdown 排版样式见上方非 scoped <style> 块（.md-body / .md-page-content 共用） */
 </style>
